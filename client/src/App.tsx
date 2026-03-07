@@ -3,14 +3,25 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/lib/auth";
+import { BottomNav } from "@/components/bottom-nav";
+import FeedPage from "@/pages/feed";
+import TeamsPage from "@/pages/teams";
+import TeamHubPage from "@/pages/team-hub";
+import DiscoverPage from "@/pages/discover";
+import OffersPage from "@/pages/offers";
+import ProfilePage from "@/pages/profile";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
-      {/* Add pages below */}
-      {/* <Route path="/" component={Home}/> */}
-      {/* Fallback to 404 */}
+      <Route path="/" component={FeedPage} />
+      <Route path="/teams" component={TeamsPage} />
+      <Route path="/teams/:id" component={TeamHubPage} />
+      <Route path="/discover" component={DiscoverPage} />
+      <Route path="/offers" component={OffersPage} />
+      <Route path="/profile" component={ProfilePage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -20,8 +31,15 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <AuthProvider>
+          <div className="min-h-screen bg-background">
+            <main className="pb-16">
+              <Router />
+            </main>
+            <BottomNav />
+          </div>
+          <Toaster />
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
