@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Calendar, Clock, ChevronRight, List, Map as MapIcon, Flag } from "lucide-react";
+import { MapPin, Calendar, Clock, List, Map as MapIcon, Flag } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/lib/auth";
 import { ReportDialog } from "@/components/report-dialog";
@@ -36,12 +36,14 @@ export default function DiscoverPage() {
   const categories = ["bar", "park", "arena", "outdoor"];
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 pb-20">
-      <h1 className="text-xl font-bold mb-4" data-testid="text-discover-title">Discover</h1>
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-20">
+      <h1 className="font-display text-2xl text-ink mb-1" data-testid="text-discover-title">Discover</h1>
+      <p className="text-sm text-muted-foreground mb-5">Find your next game day spot</p>
 
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
+      {/* Filter bar */}
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
         <Select value={teamFilter} onValueChange={setTeamFilter}>
-          <SelectTrigger className="w-[130px] text-xs" data-testid="select-team-filter">
+          <SelectTrigger className="w-[130px] text-xs rounded-full" data-testid="select-team-filter">
             <SelectValue placeholder="All Teams" />
           </SelectTrigger>
           <SelectContent>
@@ -57,7 +59,7 @@ export default function DiscoverPage() {
           </SelectContent>
         </Select>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-[120px] text-xs" data-testid="select-category-filter">
+          <SelectTrigger className="w-[120px] text-xs rounded-full" data-testid="select-category-filter">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
@@ -90,20 +92,22 @@ export default function DiscoverPage() {
       </div>
 
       <Tabs defaultValue="venues" className="w-full">
-        <TabsList className="w-full mb-4">
-          <TabsTrigger value="venues" className="flex-1" data-testid="tab-venues">Venues</TabsTrigger>
-          <TabsTrigger value="events" className="flex-1" data-testid="tab-events">Events</TabsTrigger>
+        <TabsList className="w-full mb-4 rounded-full p-1">
+          <TabsTrigger value="venues" className="flex-1 rounded-full" data-testid="tab-venues">Venues</TabsTrigger>
+          <TabsTrigger value="events" className="flex-1 rounded-full" data-testid="tab-events">Events</TabsTrigger>
         </TabsList>
 
         <TabsContent value="venues">
           {viewMode === "map" ? (
             <div className="space-y-3" data-testid="map-view">
-              <VenueMap
-                venues={venues || []}
-                teams={teams || []}
-                selectedVenueId={selectedVenueId}
-                onVenueSelect={(venue) => setSelectedVenueId(venue.id)}
-              />
+              <div className="rounded-2xl overflow-hidden shadow-md">
+                <VenueMap
+                  venues={venues || []}
+                  teams={teams || []}
+                  selectedVenueId={selectedVenueId}
+                  onVenueSelect={(venue) => setSelectedVenueId(venue.id)}
+                />
+              </div>
               {selectedVenueId && venues && (() => {
                 const venue = venues.find((v) => v.id === selectedVenueId);
                 const team = venue ? teams?.find((t) => t.id === venue.teamId) : null;
@@ -112,16 +116,16 @@ export default function DiscoverPage() {
                   <Card className="p-4">
                     <div className="flex items-start gap-3">
                       <div
-                        className="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: team?.color || "#6B728022" }}
                       >
                         <MapPin className="w-5 h-5" style={{ color: team?.color ? "#fff" : "#6B7280" }} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-sm">{venue.name}</h3>
+                          <h3 className="font-semibold text-sm text-ink">{venue.name}</h3>
                           {team && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{team.name}</Badge>
+                            <Badge variant="secondary" className="text-[10px] px-2 py-0">{team.name}</Badge>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">{venue.description}</p>
@@ -139,7 +143,7 @@ export default function DiscoverPage() {
           ) : venuesLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-24 w-full rounded-md" />
+                <Skeleton key={i} className="h-24 w-full rounded-2xl" />
               ))}
             </div>
           ) : (
@@ -150,16 +154,16 @@ export default function DiscoverPage() {
                   <Card key={venue.id} className="p-4" data-testid={`card-venue-${venue.id}`}>
                     <div className="flex items-start gap-3">
                       <div
-                        className="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: team?.color || "#6B728022" }}
                       >
                         <MapPin className="w-5 h-5" style={{ color: team?.color ? "#fff" : "#6B7280" }} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-sm" data-testid={`text-venue-name-${venue.id}`}>{venue.name}</h3>
+                          <h3 className="font-semibold text-sm text-ink" data-testid={`text-venue-name-${venue.id}`}>{venue.name}</h3>
                           {team && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            <Badge variant="secondary" className="text-[10px] px-2 py-0">
                               {team.name}
                             </Badge>
                           )}
@@ -190,8 +194,8 @@ export default function DiscoverPage() {
                 );
               })}
               {venues?.length === 0 && (
-                <div className="text-center py-12">
-                  <MapPin className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                <div className="text-center py-16">
+                  <MapPin className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
                   <p className="text-sm text-muted-foreground">No venues found</p>
                 </div>
               )}
@@ -202,15 +206,17 @@ export default function DiscoverPage() {
         <TabsContent value="events">
           {viewMode === "map" ? (
             <div className="space-y-3" data-testid="events-map-view">
-              <VenueMap
-                venues={(events || [])
-                  .filter((e) => e.venue)
-                  .map((e) => e.venue!)
-                  .filter((v, i, arr) => arr.findIndex((x) => x.id === v.id) === i)}
-                teams={teams || []}
-                selectedVenueId={selectedVenueId}
-                onVenueSelect={(venue) => setSelectedVenueId(venue.id)}
-              />
+              <div className="rounded-2xl overflow-hidden shadow-md">
+                <VenueMap
+                  venues={(events || [])
+                    .filter((e) => e.venue)
+                    .map((e) => e.venue!)
+                    .filter((v, i, arr) => arr.findIndex((x) => x.id === v.id) === i)}
+                  teams={teams || []}
+                  selectedVenueId={selectedVenueId}
+                  onVenueSelect={(venue) => setSelectedVenueId(venue.id)}
+                />
+              </div>
               <div className="space-y-2">
                 {events?.filter((e) => !selectedVenueId || e.venueId === selectedVenueId).map((event) => {
                   const team = teams?.find((t) => t.id === event.teamId);
@@ -218,13 +224,13 @@ export default function DiscoverPage() {
                     <Card key={event.id} className="p-3">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
+                          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                           style={{ backgroundColor: team?.color || "#6B728022" }}
                         >
                           <Calendar className="w-4 h-4" style={{ color: team?.color ? "#fff" : "#6B7280" }} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-sm">{event.title}</h3>
+                          <h3 className="font-semibold text-sm text-ink">{event.title}</h3>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
@@ -247,7 +253,7 @@ export default function DiscoverPage() {
           ) : eventsLoading ? (
             <div className="space-y-3">
               {[1, 2].map((i) => (
-                <Skeleton key={i} className="h-24 w-full rounded-md" />
+                <Skeleton key={i} className="h-24 w-full rounded-2xl" />
               ))}
             </div>
           ) : (
@@ -258,16 +264,16 @@ export default function DiscoverPage() {
                   <Card key={event.id} className="p-4" data-testid={`card-event-${event.id}`}>
                     <div className="flex items-start gap-3">
                       <div
-                        className="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: team?.color || "#6B728022" }}
                       >
                         <Calendar className="w-5 h-5" style={{ color: team?.color ? "#fff" : "#6B7280" }} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-sm" data-testid={`text-event-title-${event.id}`}>{event.title}</h3>
+                          <h3 className="font-semibold text-sm text-ink" data-testid={`text-event-title-${event.id}`}>{event.title}</h3>
                           {team && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            <Badge variant="secondary" className="text-[10px] px-2 py-0">
                               {team.name}
                             </Badge>
                           )}
@@ -291,8 +297,8 @@ export default function DiscoverPage() {
                 );
               })}
               {events?.length === 0 && (
-                <div className="text-center py-12">
-                  <Calendar className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                <div className="text-center py-16">
+                  <Calendar className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
                   <p className="text-sm text-muted-foreground">No events found</p>
                 </div>
               )}

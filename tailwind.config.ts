@@ -6,12 +6,28 @@ export default {
   theme: {
     extend: {
       borderRadius: {
-        lg: ".5625rem", /* 9px */
-        md: ".375rem", /* 6px */
-        sm: ".1875rem", /* 3px */
+        lg: "0.75rem",   /* 12px */
+        md: "0.5rem",    /* 8px */
+        sm: "0.375rem",  /* 6px */
+        xl: "1rem",      /* 16px */
+        "2xl": "1.25rem", /* 20px */
+        "3xl": "1.5rem", /* 24px */
       },
       colors: {
-        // Flat / base colors (regular buttons)
+        /* Core design tokens */
+        paper: "hsl(var(--paper) / <alpha-value>)",
+        "paper-deep": "hsl(var(--paper-deep) / <alpha-value>)",
+        ink: "hsl(var(--ink) / <alpha-value>)",
+        "ink-muted": "hsl(var(--ink-muted) / <alpha-value>)",
+        navy: "hsl(var(--navy) / <alpha-value>)",
+        red: "hsl(var(--red) / <alpha-value>)",
+        "red-light": "hsl(var(--red-light) / <alpha-value>)",
+        leather: "hsl(var(--leather) / <alpha-value>)",
+        turf: "hsl(var(--turf) / <alpha-value>)",
+        cream: "hsl(var(--cream) / <alpha-value>)",
+        gold: "hsl(var(--gold) / <alpha-value>)",
+
+        /* shadcn mapped tokens */
         background: "hsl(var(--background) / <alpha-value>)",
         foreground: "hsl(var(--foreground) / <alpha-value>)",
         border: "hsl(var(--border) / <alpha-value>)",
@@ -84,6 +100,7 @@ export default {
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
+        display: ["var(--font-display)"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
       },

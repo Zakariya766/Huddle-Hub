@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, ChevronRight } from "lucide-react";
+import { BadgeMark } from "@/components/brand/BadgeMark";
 import type { Team } from "@shared/schema";
 
 export default function TeamsPage() {
@@ -13,13 +13,14 @@ export default function TeamsPage() {
   });
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 pb-20">
-      <h1 className="text-xl font-bold mb-4" data-testid="text-teams-title">Team Hubs</h1>
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-20">
+      <h1 className="font-display text-2xl text-ink mb-1" data-testid="text-teams-title">Team Hubs</h1>
+      <p className="text-sm text-muted-foreground mb-5">Pick your squad</p>
 
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-md" />
+            <Skeleton key={i} className="h-24 w-full rounded-2xl" />
           ))}
         </div>
       ) : (
@@ -27,22 +28,22 @@ export default function TeamsPage() {
           {teams?.map((team) => (
             <Card
               key={team.id}
-              className="p-4 cursor-pointer hover-elevate active-elevate-2"
+              className="p-4 cursor-pointer transition-all duration-200 hover:shadow-md active:scale-[0.99]"
               onClick={() => navigate(`/teams/${team.id}`)}
               data-testid={`card-team-${team.id}`}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <div
-                  className="w-12 h-12 rounded-md flex items-center justify-center flex-shrink-0"
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm"
                   style={{ backgroundColor: team.color }}
                 >
-                  <Users className="w-6 h-6 text-white" />
+                  <Users className="w-7 h-7 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm" data-testid={`text-team-name-${team.id}`}>{team.name}</h3>
+                  <h3 className="font-semibold text-sm text-ink" data-testid={`text-team-name-${team.id}`}>{team.name}</h3>
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{team.description}</p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <ChevronRight className="w-5 h-5 text-muted-foreground/50 flex-shrink-0" />
               </div>
             </Card>
           ))}

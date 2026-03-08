@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
 import { BottomNav } from "@/components/bottom-nav";
+import { FieldPattern } from "@/components/brand/FieldPattern";
 import FeedPage from "@/pages/feed";
 import TeamsPage from "@/pages/teams";
 import TeamHubPage from "@/pages/team-hub";
@@ -32,8 +33,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <div className="min-h-screen bg-background">
-            <main className="pb-16">
+          <div className="relative min-h-screen bg-background">
+            {/* Subtle field pattern background */}
+            <FieldPattern className="fixed inset-0 text-turf opacity-60" />
+            <main className="relative pb-20">
               <Router />
             </main>
             <BottomNav />

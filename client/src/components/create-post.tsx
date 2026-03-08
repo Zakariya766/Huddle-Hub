@@ -45,10 +45,10 @@ export function CreatePost({ teams }: CreatePostProps) {
   };
 
   return (
-    <Card className="p-4" data-testid="create-post">
-      <div className="flex items-start gap-3">
-        <Avatar className="w-10 h-10 flex-shrink-0">
-          <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
+    <Card className="p-5" data-testid="create-post">
+      <div className="flex items-start gap-3.5">
+        <Avatar className="w-10 h-10 flex-shrink-0 ring-2 ring-background shadow-sm">
+          <AvatarFallback className="text-xs font-bold bg-primary text-primary-foreground">
             {initials}
           </AvatarFallback>
         </Avatar>
@@ -57,12 +57,12 @@ export function CreatePost({ teams }: CreatePostProps) {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="What's on your mind?"
-            className="resize-none border-0 text-sm focus-visible:ring-0 min-h-[60px]"
+            className="resize-none border-0 bg-transparent text-sm focus-visible:ring-0 min-h-[60px] placeholder:text-muted-foreground/60"
             data-testid="input-post-content"
           />
           <div className="flex items-center gap-2 justify-between">
             <Select value={teamId} onValueChange={setTeamId}>
-              <SelectTrigger className="w-[140px] text-xs" data-testid="select-post-team">
+              <SelectTrigger className="w-[140px] text-xs rounded-full" data-testid="select-post-team">
                 <SelectValue placeholder="Select team" />
               </SelectTrigger>
               <SelectContent>

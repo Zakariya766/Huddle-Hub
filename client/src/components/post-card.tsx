@@ -58,11 +58,11 @@ export function PostCard({ post, teams, likedPostIds }: PostCardProps) {
 
   return (
     <>
-      <Card className="p-4" data-testid={`post-card-${post.id}`}>
-        <div className="flex items-start gap-3">
-          <Avatar className="w-10 h-10 flex-shrink-0">
+      <Card className="p-5" data-testid={`post-card-${post.id}`}>
+        <div className="flex items-start gap-3.5">
+          <Avatar className="w-10 h-10 flex-shrink-0 ring-2 ring-background shadow-sm">
             <AvatarFallback
-              className="text-xs font-semibold text-white"
+              className="text-xs font-bold text-white"
               style={{ backgroundColor: team?.color || "#6B7280" }}
             >
               {initials}
@@ -70,12 +70,12 @@ export function PostCard({ post, teams, likedPostIds }: PostCardProps) {
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-sm" data-testid={`post-author-${post.id}`}>
+              <span className="font-semibold text-sm text-ink" data-testid={`post-author-${post.id}`}>
                 {post.user.displayName}
               </span>
               {team && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  <span className="w-2 h-2 rounded-full inline-block mr-1" style={{ backgroundColor: team.color }} />
+                <Badge variant="secondary" className="text-[10px] px-2 py-0">
+                  <span className="w-1.5 h-1.5 rounded-full inline-block mr-1" style={{ backgroundColor: team.color }} />
                   {team.name}
                 </Badge>
               )}
@@ -83,14 +83,15 @@ export function PostCard({ post, teams, likedPostIds }: PostCardProps) {
                 {post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : ""}
               </span>
             </div>
-            <p className="mt-2 text-sm leading-relaxed" data-testid={`post-content-${post.id}`}>
+            <p className="mt-2.5 text-sm leading-relaxed text-ink/90" data-testid={`post-content-${post.id}`}>
               {post.content}
             </p>
-            <div className="flex items-center gap-1 mt-3">
+            {/* Action row with more whitespace */}
+            <div className="flex items-center gap-1 mt-4 -ml-2">
               <Button
                 variant="ghost"
                 size="sm"
-                className={localLiked ? "text-red-500" : "text-muted-foreground"}
+                className={localLiked ? "text-red" : "text-muted-foreground"}
                 onClick={handleLike}
                 data-testid={`button-like-${post.id}`}
               >
@@ -115,7 +116,7 @@ export function PostCard({ post, teams, likedPostIds }: PostCardProps) {
                   onClick={() => setShowReport(true)}
                   data-testid={`button-report-${post.id}`}
                 >
-                  <Flag className="w-4 h-4" />
+                  <Flag className="w-3.5 h-3.5" />
                 </Button>
               )}
               {user && (user.id === post.userId || user.isAdmin) && (
@@ -126,7 +127,7 @@ export function PostCard({ post, teams, likedPostIds }: PostCardProps) {
                   onClick={handleDelete}
                   data-testid={`button-delete-post-${post.id}`}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               )}
             </div>

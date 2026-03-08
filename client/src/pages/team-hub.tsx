@@ -32,16 +32,16 @@ export default function TeamHubPage() {
 
   if (teamLoading) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-4 pb-20 space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-40 w-full" />
+      <div className="max-w-lg mx-auto px-4 pt-6 pb-20 space-y-4">
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
       </div>
     );
   }
 
   if (!team) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-12 text-center">
+      <div className="max-w-lg mx-auto px-4 py-16 text-center">
         <p className="text-muted-foreground">Team not found</p>
       </div>
     );
@@ -49,34 +49,41 @@ export default function TeamHubPage() {
 
   return (
     <div className="max-w-lg mx-auto pb-20">
+      {/* Team hero header */}
       <div
-        className="relative px-4 py-6"
-        style={{ background: `linear-gradient(135deg, ${team.color}22, ${team.color}44)` }}
+        className="relative px-4 pt-4 pb-8 rounded-b-3xl"
+        style={{ background: `linear-gradient(160deg, ${team.color}18, ${team.color}35)` }}
       >
-        <Button variant="ghost" size="icon" className="absolute top-2 left-2" onClick={() => navigate("/teams")} data-testid="button-back-teams">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="mb-2"
+          onClick={() => navigate("/teams")}
+          data-testid="button-back-teams"
+        >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div className="flex items-center gap-4 mt-6">
+        <div className="flex items-center gap-4">
           <div
-            className="w-16 h-16 rounded-md flex items-center justify-center"
+            className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-md"
             style={{ backgroundColor: team.color }}
           >
             <Users className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold" data-testid="text-team-hub-name">{team.name}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{team.description}</p>
+            <h1 className="font-display text-2xl text-ink" data-testid="text-team-hub-name">{team.name}</h1>
+            <p className="text-sm text-ink-muted mt-1">{team.description}</p>
           </div>
         </div>
       </div>
 
-      <div className="px-4 py-4 space-y-3">
+      <div className="px-4 pt-5 space-y-4">
         {user && teams && <CreatePost teams={teams} />}
 
         {postsLoading ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {[1, 2].map((i) => (
-              <Skeleton key={i} className="h-40 w-full rounded-md" />
+              <Skeleton key={i} className="h-40 w-full rounded-2xl" />
             ))}
           </div>
         ) : (
@@ -90,7 +97,7 @@ export default function TeamHubPage() {
               />
             ))}
             {posts?.length === 0 && (
-              <div className="text-center py-12">
+              <div className="text-center py-16">
                 <p className="text-muted-foreground text-sm">No posts in this hub yet</p>
               </div>
             )}

@@ -60,13 +60,14 @@ export default function OffersPage() {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 pb-20">
-      <h1 className="text-xl font-bold mb-4" data-testid="text-offers-title">Offers</h1>
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-20">
+      <h1 className="font-display text-2xl text-ink mb-1" data-testid="text-offers-title">Offers</h1>
+      <p className="text-sm text-muted-foreground mb-5">Exclusive deals for fans</p>
 
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32 w-full rounded-md" />
+            <Skeleton key={i} className="h-32 w-full rounded-2xl" />
           ))}
         </div>
       ) : (
@@ -75,21 +76,21 @@ export default function OffersPage() {
             const team = teams?.find((t) => t.id === offer.teamId);
             const claimed = isAlreadyClaimed(offer.id);
             return (
-              <Card key={offer.id} className="p-4" data-testid={`card-offer-${offer.id}`}>
-                <div className="flex items-start gap-3">
+              <Card key={offer.id} className="p-5" data-testid={`card-offer-${offer.id}`}>
+                <div className="flex items-start gap-3.5">
                   <div
-                    className="w-12 h-12 rounded-md flex items-center justify-center flex-shrink-0"
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm"
                     style={{ backgroundColor: team?.color || "#6B728022" }}
                   >
                     <Tag className="w-6 h-6" style={{ color: team?.color ? "#fff" : "#6B7280" }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-sm" data-testid={`text-offer-title-${offer.id}`}>{offer.title}</h3>
+                      <h3 className="font-semibold text-sm text-ink" data-testid={`text-offer-title-${offer.id}`}>{offer.title}</h3>
                       <Badge variant="default" className="text-[10px]">{offer.discount}</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">{offer.description}</p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
+                    <p className="text-xs text-muted-foreground mt-1.5">{offer.description}</p>
+                    <div className="flex items-center gap-3 mt-2.5 text-xs text-muted-foreground flex-wrap">
                       {offer.venue && (
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3 h-3" />
@@ -103,7 +104,7 @@ export default function OffersPage() {
                         </span>
                       )}
                     </div>
-                    <div className="mt-3">
+                    <div className="mt-3.5">
                       {claimed ? (
                         <Badge variant="secondary" className="text-xs">
                           <Check className="w-3 h-3 mr-1" />
@@ -127,27 +128,28 @@ export default function OffersPage() {
             );
           })}
           {offers?.length === 0 && (
-            <div className="text-center py-12">
-              <Tag className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+            <div className="text-center py-16">
+              <Tag className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">No offers available right now</p>
             </div>
           )}
         </div>
       )}
 
+      {/* My claims */}
       {user && claims && claims.length > 0 && (
         <div className="mt-8">
-          <h2 className="text-lg font-semibold mb-3" data-testid="text-my-claims">My Claims</h2>
+          <div className="star-divider mb-4">My Claims</div>
           <div className="space-y-2">
             {claims.map((claim) => (
-              <Card key={claim.id} className="p-3" data-testid={`card-claim-${claim.id}`}>
+              <Card key={claim.id} className="p-4" data-testid={`card-claim-${claim.id}`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{claim.offer.title}</p>
+                    <p className="text-sm font-medium text-ink truncate">{claim.offer.title}</p>
                     <p className="text-xs text-muted-foreground">{claim.offer.discount}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <code className="text-sm font-mono bg-muted px-2 py-1 rounded" data-testid={`text-claim-code-${claim.id}`}>
+                    <code className="text-sm font-mono bg-paper-deep px-2.5 py-1 rounded-lg" data-testid={`text-claim-code-${claim.id}`}>
                       {claim.claimCode}
                     </code>
                     <Button
@@ -169,22 +171,23 @@ export default function OffersPage() {
         </div>
       )}
 
+      {/* Claim dialog */}
       <Dialog open={!!claimDialog} onOpenChange={() => setClaimDialog(null)}>
-        <DialogContent className="max-w-xs text-center">
+        <DialogContent className="max-w-xs text-center rounded-3xl">
           <DialogHeader>
-            <DialogTitle>Offer Claimed!</DialogTitle>
+            <DialogTitle className="font-display text-xl">Offer Claimed!</DialogTitle>
             <DialogDescription>Show this code to redeem your offer</DialogDescription>
           </DialogHeader>
           {claimDialog && (
             <div className="py-4">
-              <div className="bg-white rounded-md p-4 mb-4 flex flex-col items-center gap-3">
+              <div className="bg-white rounded-2xl p-5 mb-4 flex flex-col items-center gap-4 shadow-sm border border-border/50">
                 <QRCodeSVG
                   value={claimDialog.claimCode}
                   size={160}
                   level="H"
                   data-testid="qr-code-claim"
                 />
-                <code className="text-2xl font-mono font-bold tracking-widest text-black" data-testid="text-claim-code-dialog">
+                <code className="text-2xl font-mono font-bold tracking-widest text-ink" data-testid="text-claim-code-dialog">
                   {claimDialog.claimCode}
                 </code>
               </div>

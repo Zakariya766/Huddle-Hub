@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PostCard } from "@/components/post-card";
 import { CreatePost } from "@/components/create-post";
+import { LogoWordmark } from "@/components/brand/LogoWordmark";
 import { useAuth } from "@/lib/auth";
 import type { Post, User, Team } from "@shared/schema";
 
@@ -22,21 +23,23 @@ export default function FeedPage() {
   });
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 pb-20 space-y-4">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <h1 className="text-xl font-bold" data-testid="text-feed-title">Latest</h1>
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-20 space-y-5">
+      <div className="flex items-center justify-between gap-2">
+        <LogoWordmark size="md" />
       </div>
+
+      <div className="star-divider">Latest</div>
 
       {user && teams && <CreatePost teams={teams} />}
 
       {postsLoading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-40 w-full rounded-md" />
+            <Skeleton key={i} className="h-40 w-full rounded-2xl" />
           ))}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {posts?.map((post) => (
             <PostCard
               key={post.id}
@@ -46,8 +49,8 @@ export default function FeedPage() {
             />
           ))}
           {posts?.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No posts yet. Be the first to share!</p>
+            <div className="text-center py-16">
+              <p className="text-muted-foreground text-sm">No posts yet. Be the first to share!</p>
             </div>
           )}
         </div>

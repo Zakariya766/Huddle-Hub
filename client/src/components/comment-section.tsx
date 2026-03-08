@@ -50,37 +50,37 @@ export function CommentSection({ postId }: CommentSectionProps) {
 
   if (isLoading) {
     return (
-      <div className="mt-3 pt-3 border-t space-y-3">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-3/4" />
+      <div className="mt-4 pt-4 border-t border-border/60 space-y-3">
+        <Skeleton className="h-8 w-full rounded-lg" />
+        <Skeleton className="h-8 w-3/4 rounded-lg" />
       </div>
     );
   }
 
   return (
-    <div className="mt-3 pt-3 border-t">
+    <div className="mt-4 pt-4 border-t border-border/60">
       <div className="space-y-3 max-h-60 overflow-y-auto">
         {comments?.map((comment) => {
           const initials = comment.user.displayName.split(" ").map((n) => n[0]).join("").toUpperCase();
           return (
-            <div key={comment.id} className="flex items-start gap-2" data-testid={`comment-${comment.id}`}>
+            <div key={comment.id} className="flex items-start gap-2.5" data-testid={`comment-${comment.id}`}>
               <Avatar className="w-7 h-7 flex-shrink-0">
-                <AvatarFallback className="text-[10px] bg-muted">{initials}</AvatarFallback>
+                <AvatarFallback className="text-[10px] font-semibold bg-paper-deep text-ink-muted">{initials}</AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 bg-paper-deep rounded-2xl rounded-tl-md px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold">{comment.user.displayName}</span>
+                  <span className="text-xs font-semibold text-ink">{comment.user.displayName}</span>
                   <span className="text-[10px] text-muted-foreground">
                     {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : ""}
                   </span>
                 </div>
-                <p className="text-xs mt-0.5 leading-relaxed">{comment.content}</p>
+                <p className="text-xs mt-0.5 leading-relaxed text-ink/85">{comment.content}</p>
               </div>
               {user && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="w-6 h-6 text-muted-foreground flex-shrink-0"
+                  className="w-6 h-6 text-muted-foreground flex-shrink-0 opacity-0 group-hover:opacity-100 hover:opacity-100"
                   onClick={() => setReportTarget(comment.id)}
                 >
                   <Flag className="w-3 h-3" />
@@ -90,7 +90,7 @@ export function CommentSection({ postId }: CommentSectionProps) {
           );
         })}
         {comments?.length === 0 && (
-          <p className="text-xs text-muted-foreground text-center py-2">No comments yet</p>
+          <p className="text-xs text-muted-foreground text-center py-3">No comments yet</p>
         )}
       </div>
       {user && (
@@ -99,10 +99,10 @@ export function CommentSection({ postId }: CommentSectionProps) {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Add a comment..."
-            className="text-sm"
+            className="text-sm rounded-full bg-paper-deep border-0 focus-visible:ring-1"
             data-testid={`input-comment-${postId}`}
           />
-          <Button type="submit" size="icon" disabled={!content.trim()} data-testid={`button-send-comment-${postId}`}>
+          <Button type="submit" size="icon" disabled={!content.trim()} className="flex-shrink-0" data-testid={`button-send-comment-${postId}`}>
             <Send className="w-4 h-4" />
           </Button>
         </form>

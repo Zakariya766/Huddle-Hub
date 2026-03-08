@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, Shield, Check, Search } from "lucide-react";
+import { LogoWordmark } from "@/components/brand/LogoWordmark";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -20,9 +21,9 @@ export default function ProfilePage() {
 
   if (authLoading) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-4 pb-20 space-y-4">
-        <Skeleton className="h-32 w-full rounded-md" />
-        <Skeleton className="h-20 w-full rounded-md" />
+      <div className="max-w-lg mx-auto px-4 pt-6 pb-20 space-y-4">
+        <Skeleton className="h-32 w-full rounded-2xl" />
+        <Skeleton className="h-20 w-full rounded-2xl" />
       </div>
     );
   }
@@ -62,39 +63,41 @@ function AuthForm() {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-8 pb-20">
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold" data-testid="text-auth-title">TheHuddle</h1>
-        <p className="text-sm text-muted-foreground mt-1">Your sports fan community</p>
+    <div className="max-w-lg mx-auto px-4 pt-12 pb-20">
+      <div className="text-center mb-8">
+        <LogoWordmark size="lg" className="justify-center" />
+        <p className="text-sm text-muted-foreground mt-2">Your sports fan community</p>
       </div>
 
       <Card className="p-6">
         <Tabs value={isLogin ? "login" : "register"} onValueChange={(v) => setIsLogin(v === "login")}>
-          <TabsList className="w-full mb-4">
-            <TabsTrigger value="login" className="flex-1" data-testid="tab-login">Sign In</TabsTrigger>
-            <TabsTrigger value="register" className="flex-1" data-testid="tab-register">Sign Up</TabsTrigger>
+          <TabsList className="w-full mb-5 rounded-full p-1">
+            <TabsTrigger value="login" className="flex-1 rounded-full" data-testid="tab-login">Sign In</TabsTrigger>
+            <TabsTrigger value="register" className="flex-1 rounded-full" data-testid="tab-register">Sign Up</TabsTrigger>
           </TabsList>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-xs font-medium text-ink-muted">Username</Label>
               <Input
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter username"
+                className="rounded-xl"
                 required
                 data-testid="input-username"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-xs font-medium text-ink-muted">Password</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
+                className="rounded-xl"
                 required
                 data-testid="input-password"
               />
@@ -103,19 +106,20 @@ function AuthForm() {
             {!isLogin && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="displayName">Display Name</Label>
+                  <Label htmlFor="displayName" className="text-xs font-medium text-ink-muted">Display Name</Label>
                   <Input
                     id="displayName"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="Your display name"
+                    className="rounded-xl"
                     data-testid="input-display-name"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Favorite Team</Label>
+                  <Label className="text-xs font-medium text-ink-muted">Favorite Team</Label>
                   <Select value={teamId} onValueChange={setTeamId}>
-                    <SelectTrigger data-testid="select-team">
+                    <SelectTrigger className="rounded-xl" data-testid="select-team">
                       <SelectValue placeholder="Choose a team" />
                     </SelectTrigger>
                     <SelectContent>
@@ -138,8 +142,8 @@ function AuthForm() {
             </Button>
 
             {isLogin && (
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                Demo accounts: alex_fan, sam_sports, casey_mod (password: demo123)
+              <p className="text-xs text-muted-foreground text-center mt-3">
+                Demo: alex_fan, sam_sports, casey_mod (password: demo123)
               </p>
             )}
           </form>
@@ -163,10 +167,10 @@ function UserProfile() {
   const initials = user.displayName.split(" ").map((n) => n[0]).join("").toUpperCase();
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 pb-20">
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-20">
       <Card className="p-6">
         <div className="flex items-center gap-4">
-          <Avatar className="w-16 h-16">
+          <Avatar className="w-16 h-16 ring-2 ring-background shadow-md">
             <AvatarFallback
               className="text-xl font-bold text-white"
               style={{ backgroundColor: team?.color || "#6B7280" }}
@@ -175,9 +179,9 @@ function UserProfile() {
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h2 className="text-lg font-bold" data-testid="text-profile-name">{user.displayName}</h2>
+            <h2 className="text-lg font-bold text-ink" data-testid="text-profile-name">{user.displayName}</h2>
             <p className="text-sm text-muted-foreground">@{user.username}</p>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1.5">
               {team && (
                 <Badge variant="secondary" className="text-xs">
                   <span className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: team.color }} />
@@ -195,7 +199,7 @@ function UserProfile() {
         </div>
         <Button
           variant="outline"
-          className="w-full mt-4"
+          className="w-full mt-5"
           onClick={logout}
           data-testid="button-logout"
         >
@@ -208,17 +212,17 @@ function UserProfile() {
 
       {claims && claims.length > 0 && (
         <div className="mt-6">
-          <h3 className="font-semibold mb-3" data-testid="text-my-offers">My Claimed Offers</h3>
+          <div className="star-divider mb-4">My Claimed Offers</div>
           <div className="space-y-2">
             {claims.map((claim) => (
-              <Card key={claim.id} className="p-3" data-testid={`card-profile-claim-${claim.id}`}>
+              <Card key={claim.id} className="p-4" data-testid={`card-profile-claim-${claim.id}`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{claim.offer.title}</p>
+                    <p className="text-sm font-medium text-ink truncate">{claim.offer.title}</p>
                     <p className="text-xs text-muted-foreground">{claim.offer.discount}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <code className="text-xs font-mono bg-muted px-2 py-1 rounded">{claim.claimCode}</code>
+                    <code className="text-xs font-mono bg-paper-deep px-2 py-1 rounded-lg">{claim.claimCode}</code>
                     {claim.redeemed ? (
                       <Badge variant="secondary" className="text-[10px]">
                         <Check className="w-3 h-3 mr-0.5" />
@@ -280,9 +284,9 @@ function RedeemSection() {
   };
 
   return (
-    <Card className="p-4 mt-6">
-      <h3 className="font-semibold mb-3 flex items-center gap-2" data-testid="text-redeem-section">
-        <Shield className="w-4 h-4" />
+    <Card className="p-5 mt-6">
+      <h3 className="font-semibold mb-3 flex items-center gap-2 text-ink" data-testid="text-redeem-section">
+        <Shield className="w-4 h-4 text-red" />
         Redeem Offer (Admin)
       </h3>
       <div className="flex items-center gap-2">
@@ -290,7 +294,7 @@ function RedeemSection() {
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           placeholder="Enter claim code"
-          className="font-mono"
+          className="font-mono rounded-xl"
           data-testid="input-redeem-code"
         />
         <Button onClick={handleSearch} disabled={searching || !code.trim()} data-testid="button-search-code">
@@ -299,8 +303,8 @@ function RedeemSection() {
       </div>
 
       {claimData && (
-        <div className="mt-4 p-3 bg-muted rounded-md space-y-2">
-          <p className="text-sm font-medium">{claimData.offer.title}</p>
+        <div className="mt-4 p-4 bg-paper-deep rounded-2xl space-y-2">
+          <p className="text-sm font-medium text-ink">{claimData.offer.title}</p>
           <p className="text-xs text-muted-foreground">Claimed by: {claimData.user.displayName}</p>
           <p className="text-xs text-muted-foreground">Discount: {claimData.offer.discount}</p>
           {claimData.redeemed ? (
