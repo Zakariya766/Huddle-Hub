@@ -10,6 +10,7 @@ import { MapPin, Calendar, Clock, ChevronRight, List, Map as MapIcon, Flag } fro
 import { format } from "date-fns";
 import { useAuth } from "@/lib/auth";
 import { ReportDialog } from "@/components/report-dialog";
+import { VenueMap } from "@/components/venue-map";
 import type { Team, Venue, Event } from "@shared/schema";
 
 export default function DiscoverPage() {
@@ -18,6 +19,7 @@ export default function DiscoverPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [reportTarget, setReportTarget] = useState<{ type: string; id: string } | null>(null);
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
 
   const { data: teams } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
 
@@ -95,24 +97,45 @@ export default function DiscoverPage() {
 
         <TabsContent value="venues">
           {viewMode === "map" ? (
-            <Card className="p-6 flex items-center justify-center min-h-[300px]" data-testid="map-view">
-              <div className="text-center">
-                <MapIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Map View</p>
-                <div className="mt-4 space-y-2">
-                  {venues?.map((venue) => {
-                    const team = teams?.find((t) => t.id === venue.teamId);
-                    return (
-                      <div key={venue.id} className="flex items-center gap-2 text-xs text-left">
-                        <MapPin className="w-3 h-3 flex-shrink-0" style={{ color: team?.color || "#6B7280" }} />
-                        <span className="font-medium">{venue.name}</span>
-                        <span className="text-muted-foreground">({venue.lat.toFixed(2)}, {venue.lng.toFixed(2)})</span>
+            <div className="space-y-3" data-testid="map-view">
+              <VenueMap
+                venues={venues || []}
+                teams={teams || []}
+                selectedVenueId={selectedVenueId}
+                onVenueSelect={(venue) => setSelectedVenueId(venue.id)}
+              />
+              {selectedVenueId && venues && (() => {
+                const venue = venues.find((v) => v.id === selectedVenueId);
+                const team = venue ? teams?.find((t) => t.id === venue.teamId) : null;
+                if (!venue) return null;
+                return (
+                  <Card className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: team?.color || "#6B728022" }}
+                      >
+                        <MapPin className="w-5 h-5" style={{ color: team?.color ? "#fff" : "#6B7280" }} />
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </Card>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-sm">{venue.name}</h3>
+                          {team && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{team.name}</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{venue.description}</p>
+                        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                          <MapPin className="w-3 h-3" />
+                          {venue.address}
+                        </div>
+                        <Badge variant="outline" className="text-[10px] mt-2">{venue.category}</Badge>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })()}
+            </div>
           ) : venuesLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -177,7 +200,51 @@ export default function DiscoverPage() {
         </TabsContent>
 
         <TabsContent value="events">
-          {eventsLoading ? (
+          {viewMode === "map" ? (
+            <div className="space-y-3" data-testid="events-map-view">
+              <VenueMap
+                venues={(events || [])
+                  .filter((e) => e.venue)
+                  .map((e) => e.venue!)
+                  .filter((v, i, arr) => arr.findIndex((x) => x.id === v.id) === i)}
+                teams={teams || []}
+                selectedVenueId={selectedVenueId}
+                onVenueSelect={(venue) => setSelectedVenueId(venue.id)}
+              />
+              <div className="space-y-2">
+                {events?.filter((e) => !selectedVenueId || e.venueId === selectedVenueId).map((event) => {
+                  const team = teams?.find((t) => t.id === event.teamId);
+                  return (
+                    <Card key={event.id} className="p-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: team?.color || "#6B728022" }}
+                        >
+                          <Calendar className="w-4 h-4" style={{ color: team?.color ? "#fff" : "#6B7280" }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm">{event.title}</h3>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {format(new Date(event.date), "MMM d 'at' h:mm a")}
+                            </span>
+                            {event.venue && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {event.venue.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ) : eventsLoading ? (
             <div className="space-y-3">
               {[1, 2].map((i) => (
                 <Skeleton key={i} className="h-24 w-full rounded-md" />

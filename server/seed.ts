@@ -62,11 +62,11 @@ export async function seedDatabase() {
   await db.insert(likes).values(likeData);
 
   const venueData = [
-    { id: "venue-1", name: "The Sideline Bar", description: "Sports bar with 20+ screens, craft beer selection, and game-day specials. The go-to spot for die-hard fans.", address: "123 Main St, Downtown", lat: 40.7128, lng: -74.006, teamId: "team-a", category: "bar" },
-    { id: "venue-2", name: "Central Sports Pub", description: "Classic pub atmosphere with great food and a huge outdoor patio perfect for watch parties.", address: "456 Oak Ave, Midtown", lat: 40.7589, lng: -73.9851, teamId: "team-b", category: "bar" },
-    { id: "venue-3", name: "Victory Park", description: "Open-air venue with a giant screen for live game viewing. Bring your own chairs and blankets.", address: "789 Park Blvd, Westside", lat: 40.7829, lng: -73.9654, category: "park" },
-    { id: "venue-4", name: "Fan Zone Arena", description: "Indoor arena converted into a fan experience center with memorabilia, games, and food trucks.", address: "101 Stadium Way, Eastside", lat: 40.6892, lng: -74.0445, teamId: "team-c", category: "arena" },
-    { id: "venue-5", name: "Tailgate Alley", description: "The ultimate pre-game destination with local food vendors, live music, and team merchandise.", address: "202 River Rd, Northside", lat: 40.7484, lng: -73.9857, teamId: "team-d", category: "outdoor" },
+    { id: "venue-1", name: "The Sideline Bar", description: "Sports bar with 20+ screens, craft beer selection, and game-day specials. The go-to spot for die-hard fans.", address: "123 Main St, Downtown", lat: 41.8827, lng: -87.6233, teamId: "team-a", category: "bar" },
+    { id: "venue-2", name: "Central Sports Pub", description: "Classic pub atmosphere with great food and a huge outdoor patio perfect for watch parties.", address: "456 Oak Ave, Midtown", lat: 41.8918, lng: -87.6086, teamId: "team-b", category: "bar" },
+    { id: "venue-3", name: "Victory Park", description: "Open-air venue with a giant screen for live game viewing. Bring your own chairs and blankets.", address: "789 Park Blvd, Westside", lat: 41.8684, lng: -87.6168, category: "park" },
+    { id: "venue-4", name: "Fan Zone Arena", description: "Indoor arena converted into a fan experience center with memorabilia, games, and food trucks.", address: "101 Stadium Way, Eastside", lat: 41.8607, lng: -87.6317, teamId: "team-c", category: "arena" },
+    { id: "venue-5", name: "Tailgate Alley", description: "The ultimate pre-game destination with local food vendors, live music, and team merchandise.", address: "202 River Rd, Northside", lat: 41.9032, lng: -87.6344, teamId: "team-d", category: "outdoor" },
   ];
   await db.insert(venues).values(venueData);
 
