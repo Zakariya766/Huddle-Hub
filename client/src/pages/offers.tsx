@@ -4,13 +4,14 @@ import { QRCodeSVG } from "qrcode.react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Tag, MapPin, Clock, Copy, Check, Ticket } from "lucide-react";
+import { MapPin, Clock, Copy, Check, Ticket } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { IconTicket } from "@/components/brand/icons";
+import { LoadingSpinner } from "@/components/brand/LoadingSpinner";
 import type { Offer, Venue, Team, OfferClaim } from "@shared/schema";
 
 export default function OffersPage() {
@@ -61,14 +62,15 @@ export default function OffersPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-20">
-      <h1 className="font-display text-2xl text-ink mb-1" data-testid="text-offers-title">Offers</h1>
+      <div className="flex items-center gap-2 mb-1">
+        <IconTicket size={28} className="text-navy" />
+        <h1 className="font-display text-2xl text-ink" data-testid="text-offers-title">Offers</h1>
+      </div>
       <p className="text-sm text-muted-foreground mb-5">Exclusive deals for fans</p>
 
       {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32 w-full rounded-2xl" />
-          ))}
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="md" />
         </div>
       ) : (
         <div className="space-y-3">
@@ -76,13 +78,13 @@ export default function OffersPage() {
             const team = teams?.find((t) => t.id === offer.teamId);
             const claimed = isAlreadyClaimed(offer.id);
             return (
-              <Card key={offer.id} className="p-5" data-testid={`card-offer-${offer.id}`}>
+              <Card key={offer.id} className="p-5 rounded-3xl" data-testid={`card-offer-${offer.id}`}>
                 <div className="flex items-start gap-3.5">
                   <div
                     className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm"
                     style={{ backgroundColor: team?.color || "#6B728022" }}
                   >
-                    <Tag className="w-6 h-6" style={{ color: team?.color ? "#fff" : "#6B7280" }} />
+                    <IconTicket size={28} className={team?.color ? "text-white" : "text-ink-muted"} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -129,7 +131,7 @@ export default function OffersPage() {
           })}
           {offers?.length === 0 && (
             <div className="text-center py-16">
-              <Tag className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+              <IconTicket size={48} className="text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">No offers available right now</p>
             </div>
           )}
@@ -142,7 +144,7 @@ export default function OffersPage() {
           <div className="star-divider mb-4">My Claims</div>
           <div className="space-y-2">
             {claims.map((claim) => (
-              <Card key={claim.id} className="p-4" data-testid={`card-claim-${claim.id}`}>
+              <Card key={claim.id} className="p-4 rounded-3xl" data-testid={`card-claim-${claim.id}`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-ink truncate">{claim.offer.title}</p>

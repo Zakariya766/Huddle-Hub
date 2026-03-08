@@ -1,13 +1,14 @@
-import { Home, MapPin, Tag, Users, User } from "lucide-react";
+import { User } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { cn } from "@/lib/utils";
+import { IconFootball, IconPlaybook, IconLocation, IconTicket } from "@/components/brand/icons";
 
 const navItems = [
-  { href: "/", icon: Home, label: "Feed" },
-  { href: "/teams", icon: Users, label: "Teams" },
-  { href: "/discover", icon: MapPin, label: "Discover" },
-  { href: "/offers", icon: Tag, label: "Offers" },
-  { href: "/profile", icon: User, label: "Profile" },
+  { href: "/", icon: IconFootball, label: "Feed" },
+  { href: "/teams", icon: IconPlaybook, label: "Teams" },
+  { href: "/discover", icon: IconLocation, label: "Discover" },
+  { href: "/offers", icon: IconTicket, label: "Offers" },
+  { href: "/profile", icon: null, label: "Profile" },
 ];
 
 export function BottomNav() {
@@ -29,7 +30,11 @@ export function BottomNav() {
                 )}
                 data-testid={`nav-${item.label.toLowerCase()}`}
               >
-                <item.icon className={cn("w-5 h-5", isActive && "stroke-[2.5px]")} />
+                {item.icon ? (
+                  <item.icon size={22} className={cn(isActive && "drop-shadow-sm")} />
+                ) : (
+                  <User className={cn("w-5 h-5", isActive && "stroke-[2.5px]")} />
+                )}
                 <span className={cn(
                   "text-[10px]",
                   isActive ? "font-semibold" : "font-medium"

@@ -5,12 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Calendar, Clock, List, Map as MapIcon, Flag } from "lucide-react";
+import { Calendar, Clock, List, Map as MapIcon, Flag } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/lib/auth";
 import { ReportDialog } from "@/components/report-dialog";
 import { VenueMap } from "@/components/venue-map";
+import { IconLocation } from "@/components/brand/icons";
+import { LoadingSpinner } from "@/components/brand/LoadingSpinner";
 import type { Team, Venue, Event } from "@shared/schema";
 
 export default function DiscoverPage() {
@@ -37,7 +38,10 @@ export default function DiscoverPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-20">
-      <h1 className="font-display text-2xl text-ink mb-1" data-testid="text-discover-title">Discover</h1>
+      <div className="flex items-center gap-2 mb-1">
+        <IconLocation size={28} className="text-navy" />
+        <h1 className="font-display text-2xl text-ink" data-testid="text-discover-title">Discover</h1>
+      </div>
       <p className="text-sm text-muted-foreground mb-5">Find your next game day spot</p>
 
       {/* Filter bar */}
@@ -100,7 +104,7 @@ export default function DiscoverPage() {
         <TabsContent value="venues">
           {viewMode === "map" ? (
             <div className="space-y-3" data-testid="map-view">
-              <div className="rounded-2xl overflow-hidden shadow-md">
+              <div className="rounded-3xl overflow-hidden shadow-md">
                 <VenueMap
                   venues={venues || []}
                   teams={teams || []}
@@ -113,13 +117,13 @@ export default function DiscoverPage() {
                 const team = venue ? teams?.find((t) => t.id === venue.teamId) : null;
                 if (!venue) return null;
                 return (
-                  <Card className="p-4">
+                  <Card className="p-4 rounded-3xl">
                     <div className="flex items-start gap-3">
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: team?.color || "#6B728022" }}
                       >
-                        <MapPin className="w-5 h-5" style={{ color: team?.color ? "#fff" : "#6B7280" }} />
+                        <IconLocation size={22} className="text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -129,10 +133,7 @@ export default function DiscoverPage() {
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">{venue.description}</p>
-                        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                          <MapPin className="w-3 h-3" />
-                          {venue.address}
-                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">{venue.address}</p>
                         <Badge variant="outline" className="text-[10px] mt-2">{venue.category}</Badge>
                       </div>
                     </div>
@@ -141,23 +142,21 @@ export default function DiscoverPage() {
               })()}
             </div>
           ) : venuesLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-24 w-full rounded-2xl" />
-              ))}
+            <div className="flex justify-center py-12">
+              <LoadingSpinner size="md" />
             </div>
           ) : (
             <div className="space-y-3">
               {venues?.map((venue) => {
                 const team = teams?.find((t) => t.id === venue.teamId);
                 return (
-                  <Card key={venue.id} className="p-4" data-testid={`card-venue-${venue.id}`}>
-                    <div className="flex items-start gap-3">
+                  <Card key={venue.id} className="p-4 rounded-3xl" data-testid={`card-venue-${venue.id}`}>
+                    <div className="flex items-center gap-3">
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: team?.color || "#6B728022" }}
                       >
-                        <MapPin className="w-5 h-5" style={{ color: team?.color ? "#fff" : "#6B7280" }} />
+                        <IconLocation size={22} className={team?.color ? "text-white" : "text-ink-muted"} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -168,26 +167,21 @@ export default function DiscoverPage() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{venue.description}</p>
-                        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                          <MapPin className="w-3 h-3" />
-                          {venue.address}
-                        </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="outline" className="text-[10px]">{venue.category}</Badge>
-                          {user && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-muted-foreground ml-auto h-7 px-2"
-                              onClick={() => setReportTarget({ type: "venue", id: venue.id })}
-                              data-testid={`button-report-venue-${venue.id}`}
-                            >
-                              <Flag className="w-3 h-3 mr-1" />
-                              <span className="text-[10px]">Report</span>
-                            </Button>
-                          )}
-                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{venue.address}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Badge variant="outline" className="text-[10px]">{venue.category}</Badge>
+                        {user && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground h-7 w-7"
+                            onClick={() => setReportTarget({ type: "venue", id: venue.id })}
+                            data-testid={`button-report-venue-${venue.id}`}
+                          >
+                            <Flag className="w-3 h-3" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </Card>
@@ -195,7 +189,7 @@ export default function DiscoverPage() {
               })}
               {venues?.length === 0 && (
                 <div className="text-center py-16">
-                  <MapPin className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+                  <IconLocation size={48} className="text-muted-foreground/30 mx-auto mb-3" />
                   <p className="text-sm text-muted-foreground">No venues found</p>
                 </div>
               )}
@@ -206,7 +200,7 @@ export default function DiscoverPage() {
         <TabsContent value="events">
           {viewMode === "map" ? (
             <div className="space-y-3" data-testid="events-map-view">
-              <div className="rounded-2xl overflow-hidden shadow-md">
+              <div className="rounded-3xl overflow-hidden shadow-md">
                 <VenueMap
                   venues={(events || [])
                     .filter((e) => e.venue)
@@ -221,7 +215,7 @@ export default function DiscoverPage() {
                 {events?.filter((e) => !selectedVenueId || e.venueId === selectedVenueId).map((event) => {
                   const team = teams?.find((t) => t.id === event.teamId);
                   return (
-                    <Card key={event.id} className="p-3">
+                    <Card key={event.id} className="p-3 rounded-3xl">
                       <div className="flex items-center gap-3">
                         <div
                           className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -237,10 +231,7 @@ export default function DiscoverPage() {
                               {format(new Date(event.date), "MMM d 'at' h:mm a")}
                             </span>
                             {event.venue && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="w-3 h-3" />
-                                {event.venue.name}
-                              </span>
+                              <span className="flex items-center gap-1">{event.venue.name}</span>
                             )}
                           </div>
                         </div>
@@ -251,18 +242,16 @@ export default function DiscoverPage() {
               </div>
             </div>
           ) : eventsLoading ? (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <Skeleton key={i} className="h-24 w-full rounded-2xl" />
-              ))}
+            <div className="flex justify-center py-12">
+              <LoadingSpinner size="md" />
             </div>
           ) : (
             <div className="space-y-3">
               {events?.map((event) => {
                 const team = teams?.find((t) => t.id === event.teamId);
                 return (
-                  <Card key={event.id} className="p-4" data-testid={`card-event-${event.id}`}>
-                    <div className="flex items-start gap-3">
+                  <Card key={event.id} className="p-4 rounded-3xl" data-testid={`card-event-${event.id}`}>
+                    <div className="flex items-center gap-3">
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: team?.color || "#6B728022" }}
@@ -278,17 +267,13 @@ export default function DiscoverPage() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{event.description}</p>
-                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {format(new Date(event.date), "MMM d, yyyy 'at' h:mm a")}
                           </span>
                           {event.venue && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {event.venue.name}
-                            </span>
+                            <span>{event.venue.name}</span>
                           )}
                         </div>
                       </div>

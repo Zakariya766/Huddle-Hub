@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/post-card";
 import { CreatePost } from "@/components/create-post";
+import { LoadingSpinner } from "@/components/brand/LoadingSpinner";
+import { IconPlaybook } from "@/components/brand/icons";
 import { useAuth } from "@/lib/auth";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { Post, User, Team } from "@shared/schema";
 
 export default function TeamHubPage() {
@@ -32,9 +33,8 @@ export default function TeamHubPage() {
 
   if (teamLoading) {
     return (
-      <div className="max-w-lg mx-auto px-4 pt-6 pb-20 space-y-4">
-        <Skeleton className="h-40 w-full rounded-2xl" />
-        <Skeleton className="h-40 w-full rounded-2xl" />
+      <div className="flex justify-center py-20">
+        <LoadingSpinner size="md" />
       </div>
     );
   }
@@ -68,7 +68,7 @@ export default function TeamHubPage() {
             className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-md"
             style={{ backgroundColor: team.color }}
           >
-            <Users className="w-8 h-8 text-white" />
+            <IconPlaybook size={40} className="text-white" />
           </div>
           <div>
             <h1 className="font-display text-2xl text-ink" data-testid="text-team-hub-name">{team.name}</h1>
@@ -81,10 +81,8 @@ export default function TeamHubPage() {
         {user && teams && <CreatePost teams={teams} />}
 
         {postsLoading ? (
-          <div className="space-y-4">
-            {[1, 2].map((i) => (
-              <Skeleton key={i} className="h-40 w-full rounded-2xl" />
-            ))}
+          <div className="flex justify-center py-12">
+            <LoadingSpinner size="md" />
           </div>
         ) : (
           <>

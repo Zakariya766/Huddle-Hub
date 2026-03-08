@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, Shield, Check, Search } from "lucide-react";
 import { LogoWordmark } from "@/components/brand/LogoWordmark";
+import { IconWhistle } from "@/components/brand/icons";
+import { LoadingSpinner } from "@/components/brand/LoadingSpinner";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -21,9 +22,8 @@ export default function ProfilePage() {
 
   if (authLoading) {
     return (
-      <div className="max-w-lg mx-auto px-4 pt-6 pb-20 space-y-4">
-        <Skeleton className="h-32 w-full rounded-2xl" />
-        <Skeleton className="h-20 w-full rounded-2xl" />
+      <div className="flex justify-center py-20">
+        <LoadingSpinner size="md" />
       </div>
     );
   }
@@ -63,13 +63,26 @@ function AuthForm() {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-12 pb-20">
-      <div className="text-center mb-8">
-        <LogoWordmark size="lg" className="justify-center" />
-        <p className="text-sm text-muted-foreground mt-2">Your sports fan community</p>
+    <div className="relative max-w-lg mx-auto px-4 pt-8 pb-20">
+      {/* Stadium bokeh video background — subtle, behind content */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover opacity-[0.08]"
+          src="/loops/loop_stadium_bokeh_1280x720.mp4"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
       </div>
 
-      <Card className="p-6">
+      <div className="text-center mb-8 pt-4">
+        <LogoWordmark size="lg" className="justify-center" />
+        <p className="text-sm text-muted-foreground mt-3">Your sports fan community</p>
+      </div>
+
+      <Card className="p-6 rounded-3xl shadow-lg">
         <Tabs value={isLogin ? "login" : "register"} onValueChange={(v) => setIsLogin(v === "login")}>
           <TabsList className="w-full mb-5 rounded-full p-1">
             <TabsTrigger value="login" className="flex-1 rounded-full" data-testid="tab-login">Sign In</TabsTrigger>
@@ -168,7 +181,7 @@ function UserProfile() {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-20">
-      <Card className="p-6">
+      <Card className="p-6 rounded-3xl">
         <div className="flex items-center gap-4">
           <Avatar className="w-16 h-16 ring-2 ring-background shadow-md">
             <AvatarFallback
@@ -215,7 +228,7 @@ function UserProfile() {
           <div className="star-divider mb-4">My Claimed Offers</div>
           <div className="space-y-2">
             {claims.map((claim) => (
-              <Card key={claim.id} className="p-4" data-testid={`card-profile-claim-${claim.id}`}>
+              <Card key={claim.id} className="p-4 rounded-3xl" data-testid={`card-profile-claim-${claim.id}`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-ink truncate">{claim.offer.title}</p>
@@ -284,9 +297,9 @@ function RedeemSection() {
   };
 
   return (
-    <Card className="p-5 mt-6">
+    <Card className="p-5 mt-6 rounded-3xl">
       <h3 className="font-semibold mb-3 flex items-center gap-2 text-ink" data-testid="text-redeem-section">
-        <Shield className="w-4 h-4 text-red" />
+        <IconWhistle size={20} className="text-red" />
         Redeem Offer (Admin)
       </h3>
       <div className="flex items-center gap-2">

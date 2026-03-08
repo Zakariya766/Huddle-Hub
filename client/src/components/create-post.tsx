@@ -45,7 +45,7 @@ export function CreatePost({ teams }: CreatePostProps) {
   };
 
   return (
-    <Card className="p-5" data-testid="create-post">
+    <Card className="p-5 rounded-3xl" data-testid="create-post">
       <div className="flex items-start gap-3.5">
         <Avatar className="w-10 h-10 flex-shrink-0 ring-2 ring-background shadow-sm">
           <AvatarFallback className="text-xs font-bold bg-primary text-primary-foreground">
