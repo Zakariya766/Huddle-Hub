@@ -11,6 +11,9 @@ import TeamHubPage from "@/pages/team-hub";
 import DiscoverPage from "@/pages/discover";
 import OffersPage from "@/pages/offers";
 import ProfilePage from "@/pages/profile";
+import UserProfilePage from "@/pages/user-profile";
+import VenueProfilePage from "@/pages/venue-profile";
+import MessagesPage from "@/pages/messages";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +25,10 @@ function Router() {
       <Route path="/discover" component={DiscoverPage} />
       <Route path="/offers" component={OffersPage} />
       <Route path="/profile" component={ProfilePage} />
+      <Route path="/users/:id" component={UserProfilePage} />
+      <Route path="/venues/:id" component={VenueProfilePage} />
+      <Route path="/messages" component={MessagesPage} />
+      <Route path="/messages/:userId" component={MessagesPage} />
       <Route component={NotFound} />
     </Switch>
   );

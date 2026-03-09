@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { CommentSection } from "./comment-section";
 import { ReportDialog } from "./report-dialog";
+import { UserProfilePopup } from "./user-profile-popup";
 import type { Post, User, Team } from "@shared/schema";
 
 interface PostCardProps {
@@ -23,6 +24,7 @@ export function PostCard({ post, teams, likedPostIds }: PostCardProps) {
   const { toast } = useToast();
   const [showComments, setShowComments] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [showUserPopup, setShowUserPopup] = useState(false);
   const [localLikeCount, setLocalLikeCount] = useState(post.likeCount);
   const [localLiked, setLocalLiked] = useState(likedPostIds.includes(post.id));
 
@@ -70,9 +72,13 @@ export function PostCard({ post, teams, likedPostIds }: PostCardProps) {
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-sm text-ink" data-testid={`post-author-${post.id}`}>
+              <button
+                className="font-semibold text-sm text-ink hover:underline cursor-pointer bg-transparent border-none p-0"
+                onClick={() => setShowUserPopup(true)}
+                data-testid={`post-author-${post.id}`}
+              >
                 {post.user.displayName}
-              </span>
+              </button>
               {team && (
                 <Badge variant="secondary" className="text-[10px] px-2 py-0">
                   <span className="w-1.5 h-1.5 rounded-full inline-block mr-1" style={{ backgroundColor: team.color }} />
@@ -141,6 +147,13 @@ export function PostCard({ post, teams, likedPostIds }: PostCardProps) {
         targetType="post"
         targetId={post.id}
       />
+      {showUserPopup && (
+        <UserProfilePopup
+          userId={post.userId}
+          displayName={post.user.displayName}
+          onClose={() => setShowUserPopup(false)}
+        />
+      )}
     </>
   );
 }

@@ -1,18 +1,27 @@
-import { User } from "lucide-react";
+import { User, MessageCircle } from "lucide-react";
 import { useLocation, Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 import { IconFootball, IconPlaybook, IconLocation, IconTicket } from "@/components/brand/icons";
 
 const navItems = [
   { href: "/", icon: IconFootball, label: "Feed" },
   { href: "/teams", icon: IconPlaybook, label: "Teams" },
   { href: "/discover", icon: IconLocation, label: "Discover" },
-  { href: "/offers", icon: IconTicket, label: "Offers" },
+  { href: "/messages", icon: "messages" as const, label: "Chat" },
   { href: "/profile", icon: null, label: "Profile" },
 ];
 
 export function BottomNav() {
   const [location] = useLocation();
+  const { user } = useAuth();
+
+  const { data: unread } = useQuery<{ count: number }>({
+    queryKey: ["/api/messages/unread-count"],
+    enabled: !!user,
+    refetchInterval: 10000,
+  });
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 glass-bar" data-testid="bottom-nav">
@@ -23,14 +32,23 @@ export function BottomNav() {
             <Link key={item.href} href={item.href}>
               <button
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 min-w-[56px]",
+                  "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all duration-200 min-w-[48px] relative",
                   isActive
                     ? "text-red"
                     : "text-ink-muted hover:text-ink"
                 )}
                 data-testid={`nav-${item.label.toLowerCase()}`}
               >
-                {item.icon ? (
+                {item.icon === "messages" ? (
+                  <div className="relative">
+                    <MessageCircle className={cn("w-5 h-5", isActive && "stroke-[2.5px]")} />
+                    {unread && unread.count > 0 && (
+                      <span className="absolute -top-1.5 -right-2 bg-red text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                        {unread.count > 9 ? "9+" : unread.count}
+                      </span>
+                    )}
+                  </div>
+                ) : item.icon ? (
                   <item.icon size={22} className={cn(isActive && "drop-shadow-sm")} />
                 ) : (
                   <User className={cn("w-5 h-5", isActive && "stroke-[2.5px]")} />

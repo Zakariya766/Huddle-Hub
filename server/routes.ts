@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPostSchema, insertCommentSchema, insertReportSchema } from "@shared/schema";
+import { insertPostSchema, insertCommentSchema, insertReportSchema, insertMessageSchema } from "@shared/schema";
 import session from "express-session";
 import { seedDatabase } from "./seed";
 
@@ -165,7 +165,11 @@ export async function registerRoutes(
 
   app.get("/api/offers", async (req, res) => {
     const teamId = req.query.teamId as string | undefined;
-    const allOffers = await storage.getOffers(teamId);
+    const venueId = req.query.venueId as string | undefined;
+    let allOffers = await storage.getOffers(teamId);
+    if (venueId) {
+      allOffers = allOffers.filter((o) => o.venueId === venueId);
+    }
     res.json(allOffers);
   });
 
@@ -210,6 +214,37 @@ export async function registerRoutes(
     if (!user?.isAdmin) return res.status(403).json({ message: "Admin only" });
     const allReports = await storage.getReports();
     res.json(allReports);
+  });
+
+  // User public profile
+  app.get("/api/users/:id", async (req, res) => {
+    const profile = await storage.getUserPublicProfile(req.params.id);
+    if (!profile) return res.status(404).json({ message: "User not found" });
+    res.json(profile);
+  });
+
+  // Messaging
+  app.get("/api/messages/conversations", requireAuth, async (req, res) => {
+    const conversations = await storage.getConversations(req.session.userId!);
+    res.json(conversations);
+  });
+
+  app.get("/api/messages/unread-count", requireAuth, async (req, res) => {
+    const count = await storage.getUnreadCount(req.session.userId!);
+    res.json({ count });
+  });
+
+  app.get("/api/messages/:userId", requireAuth, async (req, res) => {
+    const msgs = await storage.getMessages(req.session.userId!, req.params.userId);
+    await storage.markMessagesRead(req.session.userId!, req.params.userId);
+    res.json(msgs);
+  });
+
+  app.post("/api/messages", requireAuth, async (req, res) => {
+    const parsed = insertMessageSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid message data" });
+    const msg = await storage.sendMessage(req.session.userId!, parsed.data);
+    res.json(msg);
   });
 
   return httpServer;

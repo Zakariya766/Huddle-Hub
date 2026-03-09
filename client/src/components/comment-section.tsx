@@ -10,6 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ReportDialog } from "./report-dialog";
+import { UserProfilePopup } from "./user-profile-popup";
 import type { Comment, User } from "@shared/schema";
 
 interface CommentSectionProps {
@@ -21,6 +22,7 @@ export function CommentSection({ postId }: CommentSectionProps) {
   const { toast } = useToast();
   const [content, setContent] = useState("");
   const [reportTarget, setReportTarget] = useState<string | null>(null);
+  const [profilePopupUserId, setProfilePopupUserId] = useState<string | null>(null);
 
   const { data: comments, isLoading } = useQuery<(Comment & { user: User })[]>({
     queryKey: ["/api/posts", postId, "comments"],
@@ -69,7 +71,12 @@ export function CommentSection({ postId }: CommentSectionProps) {
               </Avatar>
               <div className="flex-1 min-w-0 bg-paper-deep rounded-2xl rounded-tl-md px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-ink">{comment.user.displayName}</span>
+                  <button
+                    className="text-xs font-semibold text-ink hover:underline cursor-pointer bg-transparent border-none p-0"
+                    onClick={() => setProfilePopupUserId(comment.user.id)}
+                  >
+                    {comment.user.displayName}
+                  </button>
                   <span className="text-[10px] text-muted-foreground">
                     {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : ""}
                   </span>
@@ -113,6 +120,13 @@ export function CommentSection({ postId }: CommentSectionProps) {
           onOpenChange={() => setReportTarget(null)}
           targetType="comment"
           targetId={reportTarget}
+        />
+      )}
+      {profilePopupUserId && (
+        <UserProfilePopup
+          userId={profilePopupUserId}
+          displayName=""
+          onClose={() => setProfilePopupUserId(null)}
         />
       )}
     </div>

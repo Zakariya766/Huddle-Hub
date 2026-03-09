@@ -7,18 +7,19 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Shield, Check, Search } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LogOut, Shield, Check, Search, MessageCircle, FileText } from "lucide-react";
 import { LogoWordmark } from "@/components/brand/LogoWordmark";
 import { IconWhistle } from "@/components/brand/icons";
 import { LoadingSpinner } from "@/components/brand/LoadingSpinner";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Team, OfferClaim, Offer, User as UserType } from "@shared/schema";
+import { useLocation } from "wouter";
+import type { Team, OfferClaim, Offer, User as UserType, Post } from "@shared/schema";
 
 export default function ProfilePage() {
-  const { user, isLoading: authLoading, login, register, logout } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
   if (authLoading) {
     return (
@@ -64,7 +65,6 @@ function AuthForm() {
 
   return (
     <div className="relative max-w-lg mx-auto px-4 pt-8 pb-20">
-      {/* Stadium bokeh video background — subtle, behind content */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <video
           autoPlay
@@ -168,89 +168,141 @@ function AuthForm() {
 
 function UserProfile() {
   const { user, logout } = useAuth();
-  const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const { data: teams } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
   const { data: claims } = useQuery<(OfferClaim & { offer: Offer })[]>({
     queryKey: ["/api/claims"],
   });
+  const { data: allPosts } = useQuery<(Post & { user: UserType; likeCount: number; commentCount: number })[]>({
+    queryKey: ["/api/posts"],
+  });
+  const { data: unread } = useQuery<{ count: number }>({
+    queryKey: ["/api/messages/unread-count"],
+    enabled: !!user,
+    refetchInterval: 10000,
+  });
 
   if (!user) return null;
   const team = teams?.find((t) => t.id === user.teamId);
   const initials = user.displayName.split(" ").map((n) => n[0]).join("").toUpperCase();
+  const postCount = allPosts?.filter((p) => p.userId === user.id).length || 0;
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-20">
-      <Card className="p-6 rounded-3xl">
-        <div className="flex items-center gap-4">
-          <Avatar className="w-16 h-16 ring-2 ring-background shadow-md">
-            <AvatarFallback
-              className="text-xl font-bold text-white"
-              style={{ backgroundColor: team?.color || "#6B7280" }}
-            >
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <h2 className="text-lg font-bold text-ink" data-testid="text-profile-name">{user.displayName}</h2>
-            <p className="text-sm text-muted-foreground">@{user.username}</p>
-            <div className="flex items-center gap-2 mt-1.5">
-              {team && (
-                <Badge variant="secondary" className="text-xs">
-                  <span className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: team.color }} />
-                  {team.name}
-                </Badge>
-              )}
+    <div className="max-w-lg mx-auto pb-20">
+      {/* Banner */}
+      <div
+        className="h-36 w-full relative"
+        style={{
+          background: team?.color
+            ? `linear-gradient(135deg, ${team.color}, ${team.color}88, ${team.color}44)`
+            : "linear-gradient(135deg, hsl(var(--navy)), hsl(var(--navy) / 0.6), hsl(var(--navy) / 0.3))",
+        }}
+      />
+
+      {/* Profile card overlapping banner */}
+      <div className="px-4 -mt-14">
+        <Card className="rounded-3xl overflow-visible">
+          {/* Avatar section */}
+          <div className="px-5 -mt-10">
+            <Avatar className="w-24 h-24 ring-4 ring-background shadow-lg">
+              <AvatarFallback
+                className="text-2xl font-bold text-white"
+                style={{ backgroundColor: team?.color || "#6B7280" }}
+              >
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+
+          {/* Info */}
+          <div className="px-5 pt-3 pb-5">
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-xl text-ink" data-testid="text-profile-name">{user.displayName}</h2>
               {user.isAdmin && (
-                <Badge variant="default" className="text-xs">
-                  <Shield className="w-3 h-3 mr-1" />
+                <Badge variant="default" className="text-[10px]">
+                  <Shield className="w-3 h-3 mr-0.5" />
                   Admin
                 </Badge>
               )}
             </div>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          className="w-full mt-5"
-          onClick={logout}
-          data-testid="button-logout"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Sign Out
-        </Button>
-      </Card>
+            <p className="text-sm text-muted-foreground">@{user.username}</p>
 
-      {user.isAdmin && <RedeemSection />}
+            {/* Stats row */}
+            <div className="flex items-center gap-3 mt-3">
+              {team && (
+                <Badge variant="secondary" className="text-xs">
+                  <span className="w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: team.color }} />
+                  {team.name}
+                </Badge>
+              )}
+              <Badge variant="outline" className="text-xs">
+                <FileText className="w-3 h-3 mr-1" />
+                {postCount} posts
+              </Badge>
+            </div>
 
-      {claims && claims.length > 0 && (
-        <div className="mt-6">
-          <div className="star-divider mb-4">My Claimed Offers</div>
-          <div className="space-y-2">
-            {claims.map((claim) => (
-              <Card key={claim.id} className="p-4 rounded-3xl" data-testid={`card-profile-claim-${claim.id}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink truncate">{claim.offer.title}</p>
-                    <p className="text-xs text-muted-foreground">{claim.offer.discount}</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <code className="text-xs font-mono bg-paper-deep px-2 py-1 rounded-lg">{claim.claimCode}</code>
-                    {claim.redeemed ? (
-                      <Badge variant="secondary" className="text-[10px]">
-                        <Check className="w-3 h-3 mr-0.5" />
-                        Redeemed
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px]">Active</Badge>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            ))}
+            {/* Action buttons */}
+            <div className="flex gap-2 mt-4">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => navigate("/messages")}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Messages
+                {unread && unread.count > 0 && (
+                  <Badge className="ml-2 text-[10px] px-1.5 py-0 min-w-[18px] justify-center">
+                    {unread.count}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 text-destructive hover:text-destructive"
+                onClick={logout}
+                data-testid="button-logout"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        </Card>
+      </div>
+
+      <div className="px-4">
+        {user.isAdmin && <RedeemSection />}
+
+        {claims && claims.length > 0 && (
+          <div className="mt-6">
+            <div className="star-divider mb-4">My Claimed Offers</div>
+            <div className="space-y-2">
+              {claims.map((claim) => (
+                <Card key={claim.id} className="p-4 rounded-3xl" data-testid={`card-profile-claim-${claim.id}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink truncate">{claim.offer.title}</p>
+                      <p className="text-xs text-muted-foreground">{claim.offer.discount}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <code className="text-xs font-mono bg-paper-deep px-2 py-1 rounded-lg">{claim.claimCode}</code>
+                      {claim.redeemed ? (
+                        <Badge variant="secondary" className="text-[10px]">
+                          <Check className="w-3 h-3 mr-0.5" />
+                          Redeemed
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">Active</Badge>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

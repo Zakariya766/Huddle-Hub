@@ -61,6 +61,7 @@ export const events = pgTable("events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   venueId: varchar("venue_id"),
   teamId: varchar("team_id"),
+  awayTeamId: varchar("away_team_id"),
   title: text("title").notNull(),
   description: text("description"),
   date: timestamp("date").notNull(),
@@ -132,6 +133,7 @@ export const insertVenueSchema = createInsertSchema(venues).pick({
 export const insertEventSchema = createInsertSchema(events).pick({
   venueId: true,
   teamId: true,
+  awayTeamId: true,
   title: true,
   description: true,
   date: true,
@@ -148,10 +150,24 @@ export const insertOfferSchema = createInsertSchema(offers).pick({
   imageUrl: true,
 });
 
+export const messages = pgTable("messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  senderId: varchar("sender_id").notNull(),
+  receiverId: varchar("receiver_id").notNull(),
+  content: text("content").notNull(),
+  read: boolean("read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertReportSchema = createInsertSchema(reports).pick({
   targetType: true,
   targetId: true,
   reason: true,
+});
+
+export const insertMessageSchema = createInsertSchema(messages).pick({
+  receiverId: true,
+  content: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -165,9 +181,11 @@ export type Event = typeof events.$inferSelect;
 export type Offer = typeof offers.$inferSelect;
 export type OfferClaim = typeof offerClaims.$inferSelect;
 export type Report = typeof reports.$inferSelect;
+export type Message = typeof messages.$inferSelect;
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type InsertComment = z.infer<typeof insertCommentSchema>;
 export type InsertVenue = z.infer<typeof insertVenueSchema>;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type InsertOffer = z.infer<typeof insertOfferSchema>;
 export type InsertReport = z.infer<typeof insertReportSchema>;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;

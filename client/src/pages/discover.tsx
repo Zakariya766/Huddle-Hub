@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, List, Map as MapIcon, Flag } from "lucide-react";
+import { Calendar, Clock, List, Map as MapIcon, Flag, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
+import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { ReportDialog } from "@/components/report-dialog";
 import { VenueMap } from "@/components/venue-map";
@@ -21,6 +22,7 @@ export default function DiscoverPage() {
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [reportTarget, setReportTarget] = useState<{ type: string; id: string } | null>(null);
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+  const [, navigate] = useLocation();
 
   const { data: teams } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
 
@@ -30,11 +32,11 @@ export default function DiscoverPage() {
   });
 
   const eventQueryKey = `/api/events?${teamFilter !== "all" ? `teamId=${teamFilter}` : ""}`;
-  const { data: events, isLoading: eventsLoading } = useQuery<(Event & { venue?: Venue })[]>({
+  const { data: events, isLoading: eventsLoading } = useQuery<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team })[]>({
     queryKey: [eventQueryKey],
   });
 
-  const categories = ["bar", "park", "arena", "outdoor"];
+  const categories = ["bar", "restaurant", "beer garden", "lounge", "pizzeria"];
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-20">
@@ -117,7 +119,10 @@ export default function DiscoverPage() {
                 const team = venue ? teams?.find((t) => t.id === venue.teamId) : null;
                 if (!venue) return null;
                 return (
-                  <Card className="p-4 rounded-3xl">
+                  <Card
+                    className="p-4 rounded-3xl cursor-pointer hover:bg-paper-deep/50 transition-colors"
+                    onClick={() => navigate(`/venues/${venue.id}`)}
+                  >
                     <div className="flex items-start gap-3">
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -136,6 +141,7 @@ export default function DiscoverPage() {
                         <p className="text-xs text-muted-foreground mt-2">{venue.address}</p>
                         <Badge variant="outline" className="text-[10px] mt-2">{venue.category}</Badge>
                       </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
                     </div>
                   </Card>
                 );
@@ -150,7 +156,12 @@ export default function DiscoverPage() {
               {venues?.map((venue) => {
                 const team = teams?.find((t) => t.id === venue.teamId);
                 return (
-                  <Card key={venue.id} className="p-4 rounded-3xl" data-testid={`card-venue-${venue.id}`}>
+                  <Card
+                    key={venue.id}
+                    className="p-4 rounded-3xl cursor-pointer hover:bg-paper-deep/50 transition-colors"
+                    onClick={() => navigate(`/venues/${venue.id}`)}
+                    data-testid={`card-venue-${venue.id}`}
+                  >
                     <div className="flex items-center gap-3">
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -171,17 +182,7 @@ export default function DiscoverPage() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Badge variant="outline" className="text-[10px]">{venue.category}</Badge>
-                        {user && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground h-7 w-7"
-                            onClick={() => setReportTarget({ type: "venue", id: venue.id })}
-                            data-testid={`button-report-venue-${venue.id}`}
-                          >
-                            <Flag className="w-3 h-3" />
-                          </Button>
-                        )}
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       </div>
                     </div>
                   </Card>
@@ -213,29 +214,52 @@ export default function DiscoverPage() {
               </div>
               <div className="space-y-2">
                 {events?.filter((e) => !selectedVenueId || e.venueId === selectedVenueId).map((event) => {
-                  const team = teams?.find((t) => t.id === event.teamId);
+                  const homeTeam = event.homeTeam;
+                  const awayTeam = event.awayTeam;
+                  const hasMatchup = homeTeam && awayTeam;
                   return (
                     <Card key={event.id} className="p-3 rounded-3xl">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: team?.color || "#6B728022" }}
-                        >
-                          <Calendar className="w-4 h-4" style={{ color: team?.color ? "#fff" : "#6B7280" }} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-sm text-ink">{event.title}</h3>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      {hasMatchup ? (
+                        <div>
+                          <div className="flex items-center justify-center gap-2 py-1">
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: homeTeam.color }}>
+                              <span className="text-white text-[10px] font-bold">{homeTeam.name.split(" ").pop()?.[0]}</span>
+                            </div>
+                            <span className="font-display text-xs text-ink">{homeTeam.name}</span>
+                            <span className="text-xs text-muted-foreground">vs</span>
+                            <span className="font-display text-xs text-ink">{awayTeam.name}</span>
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: awayTeam.color }}>
+                              <span className="text-white text-[10px] font-bold">{awayTeam.name.split(" ").pop()?.[0]}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {format(new Date(event.date), "MMM d 'at' h:mm a")}
                             </span>
-                            {event.venue && (
-                              <span className="flex items-center gap-1">{event.venue.name}</span>
-                            )}
+                            {event.venue && <span>{event.venue.name}</span>}
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: homeTeam?.color || "#6B728022" }}
+                          >
+                            <Calendar className="w-4 h-4" style={{ color: homeTeam?.color ? "#fff" : "#6B7280" }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-ink">{event.title}</h3>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {format(new Date(event.date), "MMM d 'at' h:mm a")}
+                              </span>
+                              {event.venue && <span>{event.venue.name}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </Card>
                   );
                 })}
@@ -248,36 +272,69 @@ export default function DiscoverPage() {
           ) : (
             <div className="space-y-3">
               {events?.map((event) => {
-                const team = teams?.find((t) => t.id === event.teamId);
+                const homeTeam = event.homeTeam;
+                const awayTeam = event.awayTeam;
+                const hasMatchup = homeTeam && awayTeam;
                 return (
                   <Card key={event.id} className="p-4 rounded-3xl" data-testid={`card-event-${event.id}`}>
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: team?.color || "#6B728022" }}
-                      >
-                        <Calendar className="w-5 h-5" style={{ color: team?.color ? "#fff" : "#6B7280" }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-sm text-ink" data-testid={`text-event-title-${event.id}`}>{event.title}</h3>
-                          {team && (
-                            <Badge variant="secondary" className="text-[10px] px-2 py-0">
-                              {team.name}
-                            </Badge>
-                          )}
+                    {hasMatchup ? (
+                      <div>
+                        <div className="flex items-center justify-center gap-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-9 h-9 rounded-full flex items-center justify-center"
+                              style={{ backgroundColor: homeTeam.color }}
+                            >
+                              <span className="text-white text-xs font-bold">{homeTeam.name.split(" ").pop()?.[0]}</span>
+                            </div>
+                            <span className="font-display text-sm text-ink">{homeTeam.name}</span>
+                          </div>
+                          <span className="font-display text-lg text-muted-foreground px-2">vs</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-display text-sm text-ink">{awayTeam.name}</span>
+                            <div
+                              className="w-9 h-9 rounded-full flex items-center justify-center"
+                              style={{ backgroundColor: awayTeam.color }}
+                            >
+                              <span className="text-white text-xs font-bold">{awayTeam.name.split(" ").pop()?.[0]}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                        <div className="flex items-center justify-center gap-3 mt-1 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {format(new Date(event.date), "MMM d, yyyy 'at' h:mm a")}
                           </span>
                           {event.venue && (
-                            <span>{event.venue.name}</span>
+                            <span className="flex items-center gap-1">
+                              <IconLocation size={12} />
+                              {event.venue.name}
+                            </span>
                           )}
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: homeTeam?.color || "#6B728022" }}
+                        >
+                          <Calendar className="w-5 h-5" style={{ color: homeTeam?.color ? "#fff" : "#6B7280" }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm text-ink" data-testid={`text-event-title-${event.id}`}>{event.title}</h3>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {format(new Date(event.date), "MMM d, yyyy 'at' h:mm a")}
+                            </span>
+                            {event.venue && (
+                              <span>{event.venue.name}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </Card>
                 );
               })}

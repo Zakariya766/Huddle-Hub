@@ -6,10 +6,11 @@ import {
   type Event, type InsertEvent,
   type Offer, type InsertOffer,
   type OfferClaim, type Report, type InsertReport,
-  users, teams, posts, comments, likes, venues, events, offers, offerClaims, reports,
+  type Message, type InsertMessage,
+  users, teams, posts, comments, likes, venues, events, offers, offerClaims, reports, messages,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, or, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -35,8 +36,8 @@ export interface IStorage {
   getVenues(teamId?: string, category?: string): Promise<Venue[]>;
   getVenue(id: string): Promise<Venue | undefined>;
 
-  getEvents(teamId?: string): Promise<(Event & { venue?: Venue })[]>;
-  getEvent(id: string): Promise<(Event & { venue?: Venue }) | undefined>;
+  getEvents(teamId?: string): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team })[]>;
+  getEvent(id: string): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team }) | undefined>;
 
   getOffers(teamId?: string): Promise<(Offer & { venue?: Venue })[]>;
   getOffer(id: string): Promise<(Offer & { venue?: Venue }) | undefined>;
@@ -47,6 +48,13 @@ export interface IStorage {
 
   createReport(reporterId: string, report: InsertReport): Promise<Report>;
   getReports(): Promise<Report[]>;
+
+  getConversations(userId: string): Promise<{ user: User; lastMessage: Message; unreadCount: number }[]>;
+  getMessages(userId: string, otherUserId: string): Promise<(Message & { sender: User })[]>;
+  sendMessage(senderId: string, message: InsertMessage): Promise<Message>;
+  markMessagesRead(userId: string, otherUserId: string): Promise<void>;
+  getUnreadCount(userId: string): Promise<number>;
+  getUserPublicProfile(userId: string): Promise<(User & { team?: Team; postCount: number }) | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -170,32 +178,54 @@ export class DatabaseStorage implements IStorage {
     return venue;
   }
 
-  async getEvents(teamId?: string): Promise<(Event & { venue?: Venue })[]> {
-    const conditions = teamId ? eq(events.teamId, teamId) : undefined;
+  async getEvents(teamId?: string): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team })[]> {
+    const conditions = teamId
+      ? sql`${events.teamId} = ${teamId} OR ${events.awayTeamId} = ${teamId}`
+      : undefined;
     const allEvents = conditions
       ? await db.select().from(events).where(conditions).orderBy(desc(events.date))
       : await db.select().from(events).orderBy(desc(events.date));
 
     const enriched = await Promise.all(allEvents.map(async (event) => {
       let venue: Venue | undefined;
+      let homeTeam: Team | undefined;
+      let awayTeam: Team | undefined;
       if (event.venueId) {
         const [v] = await db.select().from(venues).where(eq(venues.id, event.venueId));
         venue = v;
       }
-      return { ...event, venue };
+      if (event.teamId) {
+        const [t] = await db.select().from(teams).where(eq(teams.id, event.teamId));
+        homeTeam = t;
+      }
+      if (event.awayTeamId) {
+        const [t] = await db.select().from(teams).where(eq(teams.id, event.awayTeamId));
+        awayTeam = t;
+      }
+      return { ...event, venue, homeTeam, awayTeam };
     }));
     return enriched;
   }
 
-  async getEvent(id: string): Promise<(Event & { venue?: Venue }) | undefined> {
+  async getEvent(id: string): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team }) | undefined> {
     const [event] = await db.select().from(events).where(eq(events.id, id));
     if (!event) return undefined;
     let venue: Venue | undefined;
+    let homeTeam: Team | undefined;
+    let awayTeam: Team | undefined;
     if (event.venueId) {
       const [v] = await db.select().from(venues).where(eq(venues.id, event.venueId));
       venue = v;
     }
-    return { ...event, venue };
+    if (event.teamId) {
+      const [t] = await db.select().from(teams).where(eq(teams.id, event.teamId));
+      homeTeam = t;
+    }
+    if (event.awayTeamId) {
+      const [t] = await db.select().from(teams).where(eq(teams.id, event.awayTeamId));
+      awayTeam = t;
+    }
+    return { ...event, venue, homeTeam, awayTeam };
   }
 
   async getOffers(teamId?: string): Promise<(Offer & { venue?: Venue })[]> {
@@ -265,6 +295,77 @@ export class DatabaseStorage implements IStorage {
 
   async getReports(): Promise<Report[]> {
     return db.select().from(reports).orderBy(desc(reports.createdAt));
+  }
+
+  async getConversations(userId: string): Promise<{ user: User; lastMessage: Message; unreadCount: number }[]> {
+    // Get all messages involving this user
+    const allMessages = await db.select().from(messages)
+      .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
+      .orderBy(desc(messages.createdAt));
+
+    // Group by conversation partner
+    const convMap = new Map<string, Message>();
+    for (const msg of allMessages) {
+      const partnerId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+      if (!convMap.has(partnerId)) convMap.set(partnerId, msg);
+    }
+
+    const result = await Promise.all(
+      Array.from(convMap.entries()).map(async ([partnerId, lastMessage]) => {
+        const [partner] = await db.select().from(users).where(eq(users.id, partnerId));
+        const { password: _, ...safeUser } = partner;
+        const unreadRows = await db.select({ count: sql<number>`count(*)` }).from(messages)
+          .where(and(eq(messages.senderId, partnerId), eq(messages.receiverId, userId), eq(messages.read, false)));
+        return { user: safeUser as User, lastMessage, unreadCount: Number(unreadRows[0]?.count || 0) };
+      })
+    );
+    return result;
+  }
+
+  async getMessages(userId: string, otherUserId: string): Promise<(Message & { sender: User })[]> {
+    const allMessages = await db.select().from(messages)
+      .where(or(
+        and(eq(messages.senderId, userId), eq(messages.receiverId, otherUserId)),
+        and(eq(messages.senderId, otherUserId), eq(messages.receiverId, userId))
+      ))
+      .orderBy(messages.createdAt);
+
+    const enriched = await Promise.all(allMessages.map(async (msg) => {
+      const [sender] = await db.select().from(users).where(eq(users.id, msg.senderId));
+      const { password: _, ...safeSender } = sender;
+      return { ...msg, sender: safeSender as User };
+    }));
+    return enriched;
+  }
+
+  async sendMessage(senderId: string, message: InsertMessage): Promise<Message> {
+    const [msg] = await db.insert(messages).values({ ...message, senderId }).returning();
+    return msg;
+  }
+
+  async markMessagesRead(userId: string, otherUserId: string): Promise<void> {
+    await db.update(messages)
+      .set({ read: true })
+      .where(and(eq(messages.senderId, otherUserId), eq(messages.receiverId, userId), eq(messages.read, false)));
+  }
+
+  async getUnreadCount(userId: string): Promise<number> {
+    const rows = await db.select({ count: sql<number>`count(*)` }).from(messages)
+      .where(and(eq(messages.receiverId, userId), eq(messages.read, false)));
+    return Number(rows[0]?.count || 0);
+  }
+
+  async getUserPublicProfile(userId: string): Promise<(User & { team?: Team; postCount: number }) | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) return undefined;
+    const { password: _, ...safeUser } = user;
+    let team: Team | undefined;
+    if (user.teamId) {
+      const [t] = await db.select().from(teams).where(eq(teams.id, user.teamId));
+      team = t;
+    }
+    const postRows = await db.select({ count: sql<number>`count(*)` }).from(posts).where(eq(posts.userId, userId));
+    return { ...safeUser as User, team, postCount: Number(postRows[0]?.count || 0) };
   }
 }
 
