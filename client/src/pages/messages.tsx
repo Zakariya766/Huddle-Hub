@@ -71,7 +71,7 @@ function ConversationList() {
                   <Avatar className="w-11 h-11 ring-2 ring-background shadow-sm flex-shrink-0">
                     <AvatarFallback
                       className="text-sm font-bold text-white"
-                      style={{ backgroundColor: team?.color || "#6B7280" }}
+                      style={{ backgroundColor: "#6B7280" }}
                     >
                       {initials}
                     </AvatarFallback>
@@ -175,7 +175,7 @@ function ChatView({ userId }: { userId: string }) {
         >
           <AvatarFallback
             className="text-xs font-bold text-white"
-            style={{ backgroundColor: team?.color || "#6B7280" }}
+            style={{ backgroundColor: "#6B7280" }}
           >
             {initials}
           </AvatarFallback>
@@ -187,7 +187,7 @@ function ChatView({ userId }: { userId: string }) {
           <h2 className="font-semibold text-sm text-ink">{otherUser?.displayName || "Loading..."}</h2>
           {team && (
             <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: team.color }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-ink/30" />
               {team.name}
             </p>
           )}

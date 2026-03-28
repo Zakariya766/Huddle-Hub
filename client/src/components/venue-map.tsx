@@ -80,8 +80,8 @@ export function VenueMap({ venues, teams, selectedVenueId, onVenueSelect }: Venu
     if (venues.length === 0) return;
 
     venues.forEach((venue) => {
-      const team = teams.find((t) => t.id === venue.teamId);
-      const color = team?.color || "#6B7280";
+      const team = teams.length > 0 ? teams[0] : undefined;
+      const color = "#6B7280";
       const icon = createColoredIcon(color);
 
       const marker = L.marker([venue.lat, venue.lng], { icon }).addTo(markerLayer);
@@ -89,7 +89,7 @@ export function VenueMap({ venues, teams, selectedVenueId, onVenueSelect }: Venu
       const popupContent = `
         <div style="min-width: 180px; font-family: system-ui, sans-serif;">
           <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${venue.name}</div>
-          ${team ? `<div style="display: inline-block; background: ${team.color}22; color: ${team.color}; font-size: 11px; padding: 2px 8px; border-radius: 12px; margin-bottom: 6px; font-weight: 500;">${team.name}</div>` : ""}
+          ${team ? `<div style="display: inline-block; background: #6B728022; color: #6B7280; font-size: 11px; padding: 2px 8px; border-radius: 12px; margin-bottom: 6px; font-weight: 500;">${team.name}</div>` : ""}
           <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">${venue.description || ""}</div>
           <div style="font-size: 11px; color: #9CA3AF; display: flex; align-items: center; gap: 4px;">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>

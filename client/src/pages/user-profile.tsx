@@ -59,8 +59,8 @@ export default function UserProfilePage() {
       <div
         className="relative h-36 w-full"
         style={{
-          background: team?.color
-            ? `linear-gradient(135deg, ${team.color}, ${team.color}88, ${team.color}44)`
+          background: team
+            ? "linear-gradient(135deg, #6B7280, #6B728088, #6B728044)"
             : "linear-gradient(135deg, hsl(var(--navy)), hsl(var(--navy) / 0.6), hsl(var(--navy) / 0.3))",
         }}
       >
@@ -81,7 +81,7 @@ export default function UserProfilePage() {
             <Avatar className="w-24 h-24 ring-4 ring-background shadow-lg">
               <AvatarFallback
                 className="text-2xl font-bold text-white"
-                style={{ backgroundColor: team?.color || "#6B7280" }}
+                style={{ backgroundColor: "#6B7280" }}
               >
                 {initials}
               </AvatarFallback>
@@ -103,7 +103,7 @@ export default function UserProfilePage() {
             <div className="flex items-center gap-3 mt-3">
               {team && (
                 <Badge variant="secondary" className="text-xs">
-                  <span className="w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: team.color }} />
+                  <span className="w-2 h-2 rounded-full mr-1.5 bg-ink/30" />
                   {team.name}
                 </Badge>
               )}

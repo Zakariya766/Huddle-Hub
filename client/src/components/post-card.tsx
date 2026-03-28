@@ -65,7 +65,7 @@ export function PostCard({ post, teams, likedPostIds }: PostCardProps) {
           <Avatar className="w-10 h-10 flex-shrink-0 ring-2 ring-background shadow-sm">
             <AvatarFallback
               className="text-xs font-bold text-white"
-              style={{ backgroundColor: team?.color || "#6B7280" }}
+              style={{ backgroundColor: "#6B7280" }}
             >
               {initials}
             </AvatarFallback>
@@ -81,7 +81,7 @@ export function PostCard({ post, teams, likedPostIds }: PostCardProps) {
               </button>
               {team && (
                 <Badge variant="secondary" className="text-[10px] px-2 py-0">
-                  <span className="w-1.5 h-1.5 rounded-full inline-block mr-1" style={{ backgroundColor: team.color }} />
+                  <span className="w-1.5 h-1.5 rounded-full inline-block mr-1 bg-ink/30" />
                   {team.name}
                 </Badge>
               )}

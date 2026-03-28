@@ -1,211 +1,196 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { QRCodeSVG } from "qrcode.react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { Ticket, MapPin, Clock, CheckCircle, ChevronRight } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { MapPin, Clock, Copy, Check, Ticket } from "lucide-react";
-import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { IconTicket } from "@/components/brand/icons";
-import { LoadingSpinner } from "@/components/brand/LoadingSpinner";
-import type { Offer, Venue, Team, OfferClaim } from "@shared/schema";
+import { format } from "date-fns";
+import type { Sport, Offer, Venue, OfferClaim } from "@shared/schema";
 
 export default function OffersPage() {
+  const [tab, setTab] = useState<"browse" | "claimed">("browse");
+  const [sportFilter, setSportFilter] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
-  const [claimDialog, setClaimDialog] = useState<OfferClaim | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [claiming, setClaiming] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const { data: offers, isLoading } = useQuery<(Offer & { venue?: Venue })[]>({
-    queryKey: ["/api/offers"],
+  const { data: sports } = useQuery<Sport[]>({ queryKey: ["/api/sports"] });
+  const { data: offers } = useQuery<(Offer & { venue?: Venue })[]>({
+    queryKey: ["/api/offers", { sportId: sportFilter || undefined }],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (sportFilter) params.set("sportId", sportFilter);
+      const res = await fetch(`/api/offers?${params}`);
+      return res.json();
+    },
   });
-
-  const { data: teams } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
 
   const { data: claims } = useQuery<(OfferClaim & { offer: Offer })[]>({
     queryKey: ["/api/claims"],
     enabled: !!user,
   });
 
+  const activeOffers = offers?.filter(o => o.isActive) || [];
+
   const handleClaim = async (offerId: string) => {
     if (!user) {
       toast({ title: "Sign in to claim offers", variant: "destructive" });
       return;
     }
-    setClaiming(offerId);
     try {
-      const res = await apiRequest("POST", `/api/offers/${offerId}/claim`);
-      const claim = await res.json();
-      setClaimDialog(claim);
+      await apiRequest("POST", `/api/offers/${offerId}/claim`);
       queryClient.invalidateQueries({ queryKey: ["/api/claims"] });
+      toast({ title: "Offer claimed! View in My Claims." });
     } catch {
       toast({ title: "Failed to claim offer", variant: "destructive" });
-    } finally {
-      setClaiming(null);
     }
   };
 
-  const copyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const isAlreadyClaimed = (offerId: string) => {
-    return claims?.some((c) => c.offerId === offerId);
-  };
-
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-20">
-      <div className="flex items-center gap-2 mb-1">
-        <IconTicket size={28} className="text-navy" />
-        <h1 className="font-display text-2xl text-ink" data-testid="text-offers-title">Offers</h1>
+    <div className="min-h-screen bg-paper">
+      <div className="bg-ink text-paper px-4 pt-10 pb-4">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="font-display text-2xl font-bold">Offers</h1>
+          <p className="text-sm text-paper/70 mt-1">Exclusive deals from partner venues</p>
+        </div>
       </div>
-      <p className="text-sm text-muted-foreground mb-5">Exclusive deals for fans</p>
 
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <LoadingSpinner size="md" />
+      <div className="max-w-6xl mx-auto px-4 pb-24">
+        {/* Tab toggle */}
+        <div className="flex gap-1 mt-4 mb-4 bg-cream rounded-full p-1">
+          <Button
+            size="sm"
+            variant={tab === "browse" ? "default" : "ghost"}
+            className="flex-1 rounded-full text-xs h-8"
+            onClick={() => setTab("browse")}
+          >
+            <Ticket className="w-3.5 h-3.5 mr-1" /> Browse Offers
+          </Button>
+          <Button
+            size="sm"
+            variant={tab === "claimed" ? "default" : "ghost"}
+            className="flex-1 rounded-full text-xs h-8"
+            onClick={() => setTab("claimed")}
+          >
+            <CheckCircle className="w-3.5 h-3.5 mr-1" /> My Claims {claims?.length ? `(${claims.length})` : ""}
+          </Button>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {offers?.map((offer) => {
-            const team = teams?.find((t) => t.id === offer.teamId);
-            const claimed = isAlreadyClaimed(offer.id);
-            return (
-              <Card key={offer.id} className="p-5 rounded-3xl" data-testid={`card-offer-${offer.id}`}>
-                <div className="flex items-start gap-3.5">
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm"
-                    style={{ backgroundColor: team?.color || "#6B728022" }}
-                  >
-                    <IconTicket size={28} className={team?.color ? "text-white" : "text-ink-muted"} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-sm text-ink" data-testid={`text-offer-title-${offer.id}`}>{offer.title}</h3>
-                      <Badge variant="default" className="text-[10px]">{offer.discount}</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1.5">{offer.description}</p>
-                    <div className="flex items-center gap-3 mt-2.5 text-xs text-muted-foreground flex-wrap">
-                      {offer.venue && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {offer.venue.name}
-                        </span>
-                      )}
-                      {offer.expiresAt && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          Expires {format(new Date(offer.expiresAt), "MMM d")}
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-3.5">
-                      {claimed ? (
-                        <Badge variant="secondary" className="text-xs">
-                          <Check className="w-3 h-3 mr-1" />
-                          Claimed
-                        </Badge>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => handleClaim(offer.id)}
-                          disabled={claiming === offer.id}
-                          data-testid={`button-claim-${offer.id}`}
-                        >
-                          <Ticket className="w-4 h-4 mr-1" />
-                          {claiming === offer.id ? "Claiming..." : "Claim Offer"}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-          {offers?.length === 0 && (
-            <div className="text-center py-16">
-              <IconTicket size={48} className="text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No offers available right now</p>
+
+        {tab === "browse" && (
+          <>
+            {/* Sport filter */}
+            <div className="flex gap-1.5 mb-4 overflow-x-auto scrollbar-hide">
+              <Button
+                size="sm"
+                variant={!sportFilter ? "default" : "outline"}
+                className="text-xs h-7 px-3 rounded-full shrink-0"
+                onClick={() => setSportFilter("")}
+              >
+                All Sports
+              </Button>
+              {sports?.map(s => (
+                <Button
+                  key={s.id}
+                  size="sm"
+                  variant={sportFilter === s.id ? "default" : "outline"}
+                  className="text-xs h-7 px-3 rounded-full shrink-0"
+                  onClick={() => setSportFilter(s.id)}
+                >
+                  {s.name.replace("American ", "")}
+                </Button>
+              ))}
             </div>
-          )}
-        </div>
-      )}
 
-      {/* My claims */}
-      {user && claims && claims.length > 0 && (
-        <div className="mt-8">
-          <div className="star-divider mb-4">My Claims</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {activeOffers.length === 0 && (
+                <p className="text-sm text-ink-muted text-center py-8">No offers available right now.</p>
+              )}
+              {activeOffers.map(offer => (
+                <Card key={offer.id} className="border-cream hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-ink">{offer.title}</h3>
+                        <p className="text-xs text-ink-muted mt-0.5 line-clamp-2">{offer.description}</p>
+                        <div className="flex items-center gap-1 mt-1.5 text-sm font-bold text-red">
+                          <Ticket className="w-3.5 h-3.5" /> {offer.discount}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1.5 text-xs text-ink-muted">
+                          {offer.venue && (
+                            <Link href={`/venues/${offer.venue.id}`}>
+                              <span className="flex items-center gap-1 hover:text-red">
+                                <MapPin className="w-3 h-3" /> {offer.venue.name}
+                              </span>
+                            </Link>
+                          )}
+                          {offer.expiresAt && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" /> Expires {format(new Date(offer.expiresAt), "MMM d")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="rounded-full text-xs h-8 px-4 shrink-0 ml-3"
+                        onClick={() => handleClaim(offer.id)}
+                      >
+                        Claim
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+
+        {tab === "claimed" && (
           <div className="space-y-2">
-            {claims.map((claim) => (
-              <Card key={claim.id} className="p-4 rounded-3xl" data-testid={`card-claim-${claim.id}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink truncate">{claim.offer.title}</p>
-                    <p className="text-xs text-muted-foreground">{claim.offer.discount}</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <code className="text-sm font-mono bg-paper-deep px-2.5 py-1 rounded-lg" data-testid={`text-claim-code-${claim.id}`}>
-                      {claim.claimCode}
-                    </code>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => copyCode(claim.claimCode)}
-                      data-testid={`button-copy-code-${claim.id}`}
-                    >
-                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                    {claim.redeemed && (
-                      <Badge variant="secondary" className="text-[10px]">Redeemed</Badge>
+            {!user && (
+              <p className="text-sm text-ink-muted text-center py-8">
+                <Link href="/profile"><span className="text-red font-medium">Sign in</span></Link> to view your claims.
+              </p>
+            )}
+            {user && (!claims || claims.length === 0) && (
+              <p className="text-sm text-ink-muted text-center py-8">No claimed offers yet. Browse and claim one!</p>
+            )}
+            {claims?.map(claim => (
+              <Card key={claim.id} className={`border-cream ${claim.redeemed ? "opacity-60" : ""}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-semibold text-sm text-ink">{claim.offer?.title}</h3>
+                      <p className="text-xs text-ink-muted mt-0.5">{claim.offer?.discount}</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <Badge variant={claim.redeemed ? "secondary" : "default"} className="text-xs">
+                          {claim.redeemed ? "Redeemed" : "Active"}
+                        </Badge>
+                        <span className="text-xs text-ink-muted font-mono">{claim.claimCode}</span>
+                      </div>
+                    </div>
+                    {!claim.redeemed && (
+                      <div className="text-center">
+                        <div className="bg-white p-2 rounded-lg border">
+                          <div className="w-16 h-16 bg-ink/5 flex items-center justify-center text-[8px] font-mono text-ink break-all">
+                            {claim.claimCode}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-ink-muted mt-1">Show at venue</p>
+                      </div>
                     )}
                   </div>
-                </div>
+                </CardContent>
               </Card>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Claim dialog */}
-      <Dialog open={!!claimDialog} onOpenChange={() => setClaimDialog(null)}>
-        <DialogContent className="max-w-xs text-center rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">Offer Claimed!</DialogTitle>
-            <DialogDescription>Show this code to redeem your offer</DialogDescription>
-          </DialogHeader>
-          {claimDialog && (
-            <div className="py-4">
-              <div className="bg-white rounded-2xl p-5 mb-4 flex flex-col items-center gap-4 shadow-sm border border-border/50">
-                <QRCodeSVG
-                  value={claimDialog.claimCode}
-                  size={160}
-                  level="H"
-                  data-testid="qr-code-claim"
-                />
-                <code className="text-2xl font-mono font-bold tracking-widest text-ink" data-testid="text-claim-code-dialog">
-                  {claimDialog.claimCode}
-                </code>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => copyCode(claimDialog.claimCode)}
-                data-testid="button-copy-claim-code"
-              >
-                {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                {copied ? "Copied!" : "Copy Code"}
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+        )}
+      </div>
     </div>
   );
 }

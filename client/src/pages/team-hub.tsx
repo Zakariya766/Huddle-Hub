@@ -52,7 +52,7 @@ export default function TeamHubPage() {
       {/* Team hero header */}
       <div
         className="relative px-4 pt-4 pb-8 rounded-b-3xl"
-        style={{ background: `linear-gradient(160deg, ${team.color}18, ${team.color}35)` }}
+        style={{ background: "linear-gradient(160deg, rgba(107,114,128,0.1), rgba(107,114,128,0.2))" }}
       >
         <Button
           variant="ghost"
@@ -66,7 +66,7 @@ export default function TeamHubPage() {
         <div className="flex items-center gap-4">
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-md"
-            style={{ backgroundColor: team.color }}
+            style={{ backgroundColor: "#6B7280" }}
           >
             <IconPlaybook size={40} className="text-white" />
           </div>

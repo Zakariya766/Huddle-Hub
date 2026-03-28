@@ -1,67 +1,75 @@
-import { User, MessageCircle } from "lucide-react";
+import { Compass, Calendar, Globe, Ticket, User } from "lucide-react";
 import { useLocation, Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/auth";
-import { IconFootball, IconPlaybook, IconLocation, IconTicket } from "@/components/brand/icons";
 
 const navItems = [
-  { href: "/", icon: IconFootball, label: "Feed" },
-  { href: "/teams", icon: IconPlaybook, label: "Teams" },
-  { href: "/discover", icon: IconLocation, label: "Discover" },
-  { href: "/messages", icon: "messages" as const, label: "Chat" },
-  { href: "/profile", icon: null, label: "Profile" },
+  { href: "/", icon: Compass, label: "Discover" },
+  { href: "/events", icon: Calendar, label: "Events" },
+  { href: "/profile", icon: User, label: "Profile" },
 ];
 
 export function BottomNav() {
   const [location] = useLocation();
-  const { user } = useAuth();
-
-  const { data: unread } = useQuery<{ count: number }>({
-    queryKey: ["/api/messages/unread-count"],
-    enabled: !!user,
-    refetchInterval: 10000,
-  });
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass-bar" data-testid="bottom-nav">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
-        {navItems.map((item) => {
-          const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
-          return (
-            <Link key={item.href} href={item.href}>
-              <button
-                className={cn(
-                  "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all duration-200 min-w-[48px] relative",
-                  isActive
-                    ? "text-red"
-                    : "text-ink-muted hover:text-ink"
-                )}
-                data-testid={`nav-${item.label.toLowerCase()}`}
-              >
-                {item.icon === "messages" ? (
-                  <div className="relative">
-                    <MessageCircle className={cn("w-5 h-5", isActive && "stroke-[2.5px]")} />
-                    {unread && unread.count > 0 && (
-                      <span className="absolute -top-1.5 -right-2 bg-red text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                        {unread.count > 9 ? "9+" : unread.count}
-                      </span>
+    <>
+      {/* Desktop top nav */}
+      <nav className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-ink border-b border-ink/20 shadow-sm">
+        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between h-14">
+          <Link href="/">
+            <span className="font-display text-lg font-bold text-paper tracking-tight cursor-pointer">HUDDLE HUB</span>
+          </Link>
+          <div className="flex items-center gap-1">
+            {navItems.map((item) => {
+              const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
+              return (
+                <Link key={item.href} href={item.href}>
+                  <button
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-200 text-sm",
+                      isActive
+                        ? "bg-paper/15 text-paper font-semibold"
+                        : "text-paper/60 hover:text-paper hover:bg-paper/10"
                     )}
-                  </div>
-                ) : item.icon ? (
-                  <item.icon size={22} className={cn(isActive && "drop-shadow-sm")} />
-                ) : (
-                  <User className={cn("w-5 h-5", isActive && "stroke-[2.5px]")} />
-                )}
-                <span className={cn(
-                  "text-[10px]",
-                  isActive ? "font-semibold" : "font-medium"
-                )}>{item.label}</span>
-              </button>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+                    data-testid={`nav-${item.label.toLowerCase()}`}
+                  >
+                    <item.icon className={cn("w-4 h-4", isActive && "stroke-[2.5px]")} />
+                    <span>{item.label}</span>
+                  </button>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-bar" data-testid="bottom-nav">
+        <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+          {navItems.map((item) => {
+            const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
+            return (
+              <Link key={item.href} href={item.href}>
+                <button
+                  className={cn(
+                    "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all duration-200 min-w-[48px] relative",
+                    isActive
+                      ? "text-red"
+                      : "text-ink-muted hover:text-ink"
+                  )}
+                  data-testid={`nav-${item.label.toLowerCase()}`}
+                >
+                  <item.icon className={cn("w-5 h-5", isActive && "stroke-[2.5px]")} />
+                  <span className={cn(
+                    "text-[10px]",
+                    isActive ? "font-semibold" : "font-medium"
+                  )}>{item.label}</span>
+                </button>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </>
   );
 }

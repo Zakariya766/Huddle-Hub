@@ -8,14 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Shield, Check, Search, MessageCircle, FileText } from "lucide-react";
-import { LogoWordmark } from "@/components/brand/LogoWordmark";
-import { IconWhistle } from "@/components/brand/icons";
-import { LoadingSpinner } from "@/components/brand/LoadingSpinner";
+import { LogOut, Shield, Check, Search, MessageCircle, FileText, Settings, Clock, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import type { Team, OfferClaim, Offer, User as UserType, Post } from "@shared/schema";
 
 export default function ProfilePage() {
@@ -24,7 +21,7 @@ export default function ProfilePage() {
   if (authLoading) {
     return (
       <div className="flex justify-center py-20">
-        <LoadingSpinner size="md" />
+        <div className="w-8 h-8 border-2 border-ink border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -64,104 +61,88 @@ function AuthForm() {
   };
 
   return (
-    <div className="relative max-w-lg mx-auto px-4 pt-8 pb-20">
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover opacity-[0.08]"
-          src="/loops/loop_stadium_bokeh_1280x720.mp4"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
+    <div className="min-h-screen bg-paper">
+      <div className="bg-ink text-paper px-4 pt-12 pb-8 text-center">
+        <h1 className="font-display text-3xl font-bold tracking-tight">HUDDLE HUB</h1>
+        <p className="text-sm text-paper/70 mt-2">Find where fans watch the game</p>
       </div>
 
-      <div className="text-center mb-8 pt-4">
-        <LogoWordmark size="lg" className="justify-center" />
-        <p className="text-sm text-muted-foreground mt-3">Your sports fan community</p>
-      </div>
+      <div className="max-w-2xl mx-auto px-4 -mt-4 pb-24">
+        <Card className="p-6 rounded-3xl shadow-lg">
+          <Tabs value={isLogin ? "login" : "register"} onValueChange={(v) => setIsLogin(v === "login")}>
+            <TabsList className="w-full mb-5 rounded-full p-1">
+              <TabsTrigger value="login" className="flex-1 rounded-full">Sign In</TabsTrigger>
+              <TabsTrigger value="register" className="flex-1 rounded-full">Sign Up</TabsTrigger>
+            </TabsList>
 
-      <Card className="p-6 rounded-3xl shadow-lg">
-        <Tabs value={isLogin ? "login" : "register"} onValueChange={(v) => setIsLogin(v === "login")}>
-          <TabsList className="w-full mb-5 rounded-full p-1">
-            <TabsTrigger value="login" className="flex-1 rounded-full" data-testid="tab-login">Sign In</TabsTrigger>
-            <TabsTrigger value="register" className="flex-1 rounded-full" data-testid="tab-register">Sign Up</TabsTrigger>
-          </TabsList>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-xs font-medium text-ink-muted">Username</Label>
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter username"
+                  className="rounded-xl"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-xs font-medium text-ink-muted">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  className="rounded-xl"
+                  required
+                />
+              </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-xs font-medium text-ink-muted">Username</Label>
-              <Input
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-                className="rounded-xl"
-                required
-                data-testid="input-username"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-xs font-medium text-ink-muted">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                className="rounded-xl"
-                required
-                data-testid="input-password"
-              />
-            </div>
-
-            {!isLogin && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="displayName" className="text-xs font-medium text-ink-muted">Display Name</Label>
-                  <Input
-                    id="displayName"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Your display name"
-                    className="rounded-xl"
-                    data-testid="input-display-name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-ink-muted">Favorite Team</Label>
-                  <Select value={teamId} onValueChange={setTeamId}>
-                    <SelectTrigger className="rounded-xl" data-testid="select-team">
-                      <SelectValue placeholder="Choose a team" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {teams?.map((team) => (
-                        <SelectItem key={team.id} value={team.id}>
-                          <span className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: team.color }} />
+              {!isLogin && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName" className="text-xs font-medium text-ink-muted">Display Name</Label>
+                    <Input
+                      id="displayName"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Your display name"
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-ink-muted">Favorite Team</Label>
+                    <Select value={teamId} onValueChange={setTeamId}>
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Choose a team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teams?.map((team) => (
+                          <SelectItem key={team.id} value={team.id}>
                             {team.name}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
 
-            <Button type="submit" className="w-full" disabled={loading} data-testid="button-auth-submit">
-              {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
-            </Button>
+              <Button type="submit" className="w-full rounded-full" disabled={loading}>
+                {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
+              </Button>
 
-            {isLogin && (
-              <p className="text-xs text-muted-foreground text-center mt-3">
-                Demo: alex_fan, sam_sports, casey_mod (password: demo123)
-              </p>
-            )}
-          </form>
-        </Tabs>
-      </Card>
+              {isLogin && (
+                <p className="text-xs text-muted-foreground text-center mt-3">
+                  Demo: alex_fan, sam_sports, casey_mod (password: demo123)
+                </p>
+              )}
+            </form>
+          </Tabs>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -189,119 +170,101 @@ function UserProfile() {
   const postCount = allPosts?.filter((p) => p.userId === user.id).length || 0;
 
   return (
-    <div className="max-w-lg mx-auto pb-20">
-      {/* Banner */}
-      <div
-        className="h-36 w-full relative"
-        style={{
-          background: team?.color
-            ? `linear-gradient(135deg, ${team.color}, ${team.color}88, ${team.color}44)`
-            : "linear-gradient(135deg, hsl(var(--navy)), hsl(var(--navy) / 0.6), hsl(var(--navy) / 0.3))",
-        }}
-      />
-
-      {/* Profile card overlapping banner */}
-      <div className="px-4 -mt-14">
-        <Card className="rounded-3xl overflow-visible">
-          {/* Avatar section */}
-          <div className="px-5 -mt-10">
-            <Avatar className="w-24 h-24 ring-4 ring-background shadow-lg">
-              <AvatarFallback
-                className="text-2xl font-bold text-white"
-                style={{ backgroundColor: team?.color || "#6B7280" }}
-              >
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-
-          {/* Info */}
-          <div className="px-5 pt-3 pb-5">
+    <div className="min-h-screen bg-paper">
+      {/* Header */}
+      <div className="bg-ink text-paper px-4 pt-10 pb-6">
+        <div className="max-w-2xl mx-auto flex items-center gap-4">
+          <Avatar className="w-16 h-16 ring-2 ring-paper/30">
+            <AvatarFallback className="text-xl font-bold text-paper bg-ink/50">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div>
             <div className="flex items-center gap-2">
-              <h2 className="font-display text-xl text-ink" data-testid="text-profile-name">{user.displayName}</h2>
+              <h1 className="font-display text-xl font-bold">{user.displayName}</h1>
               {user.isAdmin && (
-                <Badge variant="default" className="text-[10px]">
-                  <Shield className="w-3 h-3 mr-0.5" />
-                  Admin
+                <Badge variant="secondary" className="text-[10px]">
+                  <Shield className="w-3 h-3 mr-0.5" /> Admin
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground">@{user.username}</p>
-
-            {/* Stats row */}
-            <div className="flex items-center gap-3 mt-3">
-              {team && (
-                <Badge variant="secondary" className="text-xs">
-                  <span className="w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: team.color }} />
-                  {team.name}
-                </Badge>
-              )}
-              <Badge variant="outline" className="text-xs">
-                <FileText className="w-3 h-3 mr-1" />
-                {postCount} posts
-              </Badge>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex gap-2 mt-4">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => navigate("/messages")}
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Messages
-                {unread && unread.count > 0 && (
-                  <Badge className="ml-2 text-[10px] px-1.5 py-0 min-w-[18px] justify-center">
-                    {unread.count}
-                  </Badge>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 text-destructive hover:text-destructive"
-                onClick={logout}
-                data-testid="button-logout"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
+            <p className="text-sm text-paper/70">@{user.username}</p>
+            <div className="flex items-center gap-2 mt-1">
+              {team && <Badge variant="outline" className="text-[10px] text-paper/80 border-paper/30">{team.name}</Badge>}
+              <span className="text-xs text-paper/60">{postCount} posts</span>
             </div>
           </div>
-        </Card>
+        </div>
       </div>
 
-      <div className="px-4">
+      <div className="max-w-2xl mx-auto px-4 pb-24 space-y-3 mt-4">
+        {/* Quick links */}
+        <Card className="border-cream">
+          <div className="divide-y divide-cream">
+            <Link href="/messages">
+              <button className="w-full flex items-center justify-between p-4 hover:bg-cream/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <MessageCircle className="w-5 h-5 text-ink-muted" />
+                  <span className="text-sm font-medium text-ink">Messages</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {unread && unread.count > 0 && (
+                    <Badge className="text-[10px] px-1.5">{unread.count}</Badge>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-ink-muted" />
+                </div>
+              </button>
+            </Link>
+            {user.isAdmin && (
+              <Link href="/admin">
+                <button className="w-full flex items-center justify-between p-4 hover:bg-cream/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <Settings className="w-5 h-5 text-ink-muted" />
+                    <span className="text-sm font-medium text-ink">Admin Dashboard</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-ink-muted" />
+                </button>
+              </Link>
+            )}
+          </div>
+        </Card>
+
+        {/* Admin Redeem */}
         {user.isAdmin && <RedeemSection />}
 
+        {/* Claimed offers */}
         {claims && claims.length > 0 && (
-          <div className="mt-6">
-            <div className="star-divider mb-4">My Claimed Offers</div>
+          <section>
+            <h2 className="font-display text-sm font-bold text-ink-muted uppercase tracking-wider mb-2 mt-4">My Claims</h2>
             <div className="space-y-2">
               {claims.map((claim) => (
-                <Card key={claim.id} className="p-4 rounded-3xl" data-testid={`card-profile-claim-${claim.id}`}>
-                  <div className="flex items-center justify-between gap-2">
+                <Card key={claim.id} className="border-cream">
+                  <div className="p-3 flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-ink truncate">{claim.offer.title}</p>
                       <p className="text-xs text-muted-foreground">{claim.offer.discount}</p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <code className="text-xs font-mono bg-paper-deep px-2 py-1 rounded-lg">{claim.claimCode}</code>
-                      {claim.redeemed ? (
-                        <Badge variant="secondary" className="text-[10px]">
-                          <Check className="w-3 h-3 mr-0.5" />
-                          Redeemed
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-[10px]">Active</Badge>
-                      )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <code className="text-xs font-mono bg-cream px-2 py-1 rounded">{claim.claimCode}</code>
+                      <Badge variant={claim.redeemed ? "secondary" : "outline"} className="text-[10px]">
+                        {claim.redeemed ? "Redeemed" : "Active"}
+                      </Badge>
                     </div>
                   </div>
                 </Card>
               ))}
             </div>
-          </div>
+          </section>
         )}
+
+        {/* Sign out */}
+        <Button
+          variant="outline"
+          className="w-full rounded-full text-destructive hover:text-destructive mt-4"
+          onClick={logout}
+        >
+          <LogOut className="w-4 h-4 mr-2" /> Sign Out
+        </Button>
       </div>
     </div>
   );
@@ -338,7 +301,7 @@ function RedeemSection() {
     setRedeeming(true);
     try {
       await apiRequest("POST", `/api/claims/${claimData.id}/redeem`);
-      toast({ title: "Offer redeemed successfully!" });
+      toast({ title: "Offer redeemed!" });
       setClaimData({ ...claimData, redeemed: true, redeemedAt: new Date() });
       queryClient.invalidateQueries({ queryKey: ["/api/claims"] });
     } catch {
@@ -349,42 +312,33 @@ function RedeemSection() {
   };
 
   return (
-    <Card className="p-5 mt-6 rounded-3xl">
-      <h3 className="font-semibold mb-3 flex items-center gap-2 text-ink" data-testid="text-redeem-section">
-        <IconWhistle size={20} className="text-red" />
-        Redeem Offer (Admin)
+    <Card className="border-cream p-4">
+      <h3 className="font-semibold text-sm mb-3 text-ink flex items-center gap-2">
+        <Shield className="w-4 h-4 text-red" /> Redeem Offer (Admin)
       </h3>
       <div className="flex items-center gap-2">
         <Input
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           placeholder="Enter claim code"
-          className="font-mono rounded-xl"
-          data-testid="input-redeem-code"
+          className="font-mono text-sm"
         />
-        <Button onClick={handleSearch} disabled={searching || !code.trim()} data-testid="button-search-code">
+        <Button size="sm" onClick={handleSearch} disabled={searching || !code.trim()}>
           <Search className="w-4 h-4" />
         </Button>
       </div>
 
       {claimData && (
-        <div className="mt-4 p-4 bg-paper-deep rounded-2xl space-y-2">
+        <div className="mt-3 p-3 bg-cream/50 rounded-xl space-y-1.5">
           <p className="text-sm font-medium text-ink">{claimData.offer.title}</p>
-          <p className="text-xs text-muted-foreground">Claimed by: {claimData.user.displayName}</p>
-          <p className="text-xs text-muted-foreground">Discount: {claimData.offer.discount}</p>
+          <p className="text-xs text-ink-muted">By: {claimData.user.displayName}</p>
+          <p className="text-xs text-ink-muted">Discount: {claimData.offer.discount}</p>
           {claimData.redeemed ? (
-            <Badge variant="secondary">
-              <Check className="w-3 h-3 mr-1" />
-              Already Redeemed
+            <Badge variant="secondary" className="text-xs">
+              <Check className="w-3 h-3 mr-1" /> Already Redeemed
             </Badge>
           ) : (
-            <Button
-              size="sm"
-              className="w-full"
-              onClick={handleRedeem}
-              disabled={redeeming}
-              data-testid="button-redeem-offer"
-            >
+            <Button size="sm" className="w-full rounded-full mt-2" onClick={handleRedeem} disabled={redeeming}>
               {redeeming ? "Redeeming..." : "Redeem Now"}
             </Button>
           )}

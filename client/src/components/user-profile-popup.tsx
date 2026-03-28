@@ -40,8 +40,8 @@ export function UserProfilePopup({ userId, displayName, onClose, onMessage }: Us
         <div
           className="h-24 w-full"
           style={{
-            background: team?.color
-              ? `linear-gradient(135deg, ${team.color}, ${team.color}88)`
+            background: team
+              ? "linear-gradient(135deg, #6B7280, #6B728088)"
               : "linear-gradient(135deg, hsl(var(--navy)), hsl(var(--navy) / 0.6))",
           }}
         />
@@ -51,7 +51,7 @@ export function UserProfilePopup({ userId, displayName, onClose, onMessage }: Us
           <Avatar className="w-20 h-20 ring-4 ring-background shadow-lg">
             <AvatarFallback
               className="text-2xl font-bold text-white"
-              style={{ backgroundColor: team?.color || "#6B7280" }}
+              style={{ backgroundColor: "#6B7280" }}
             >
               {initials}
             </AvatarFallback>
@@ -66,7 +66,7 @@ export function UserProfilePopup({ userId, displayName, onClose, onMessage }: Us
           <div className="flex items-center gap-2 mt-2.5">
             {team && (
               <Badge variant="secondary" className="text-xs">
-                <span className="w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: team.color }} />
+                <span className="w-2 h-2 rounded-full mr-1.5 bg-ink/30" />
                 {team.name}
               </Badge>
             )}

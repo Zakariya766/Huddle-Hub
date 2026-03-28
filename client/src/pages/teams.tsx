@@ -37,7 +37,7 @@ export default function TeamsPage() {
               <div className="flex items-center gap-4">
                 <div
                   className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm"
-                  style={{ backgroundColor: team.color }}
+                  style={{ backgroundColor: "#6B7280" }}
                 >
                   <IconPlaybook size={32} className="text-white" />
                 </div>
