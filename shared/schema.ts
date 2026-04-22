@@ -109,6 +109,13 @@ export const events = pgTable("events", {
   imageUrl: text("image_url"),
   matchId: varchar("match_id"), // link to ingested match
   rsvpCount: integer("rsvp_count").default(0),
+  eventType: text("event_type").default("watch-party"), // watch-party | bar-special | tailgate | meetup | other
+});
+
+export const eventTeams = pgTable("event_teams", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull(),
+  teamId: varchar("team_id").notNull(),
 });
 
 export const eventRsvps = pgTable("event_rsvps", {
@@ -319,6 +326,7 @@ export const insertEventSchema = createInsertSchema(events).pick({
   description: true,
   date: true,
   imageUrl: true,
+  eventType: true,
 });
 
 export const insertOfferSchema = createInsertSchema(offers).pick({
@@ -367,6 +375,7 @@ export type Like = typeof likes.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
 export type VenueTeamAffiliation = typeof venueTeamAffiliations.$inferSelect;
 export type Event = typeof events.$inferSelect;
+export type EventTeam = typeof eventTeams.$inferSelect;
 export type EventRsvp = typeof eventRsvps.$inferSelect;
 export type Offer = typeof offers.$inferSelect;
 export type OfferClaim = typeof offerClaims.$inferSelect;

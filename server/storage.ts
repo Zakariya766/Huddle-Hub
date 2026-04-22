@@ -12,7 +12,7 @@ import {
   type Checkin,
   type CommunityRoom, type RoomMessage, type InsertRoomMessage, type RoomMessageReaction,
   users, sports, leagues, teams, posts, comments, likes,
-  venues, venueTeamAffiliations, events, eventRsvps,
+  venues, venueTeamAffiliations, events, eventTeams, eventRsvps,
   offers, offerClaims, reports, messages,
   reviews, checkins,
   communityRooms, roomMessages, roomMessageReactions,
@@ -60,11 +60,12 @@ export interface IStorage {
   getVenuesByTeam(teamId: string): Promise<Venue[]>;
 
   // Events
-  getEvents(filters?: { teamId?: string; sportId?: string; leagueId?: string }): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team })[]>;
-  getEvent(id: string): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team }) | undefined>;
+  getEvents(filters?: { teamId?: string; sportId?: string; leagueId?: string; eventType?: string; q?: string }): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team; teamTags: Team[] })[]>;
+  getEvent(id: string): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team; teamTags: Team[] }) | undefined>;
   createEvent(event: InsertEvent): Promise<Event>;
   rsvpEvent(eventId: string, userId: string): Promise<boolean>;
   getEventRsvps(eventId: string): Promise<string[]>;
+  getUserRsvpEvents(userId: string): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team; teamTags: Team[] })[]>;
 
   // Offers
   getOffers(filters?: { teamId?: string; sportId?: string; venueId?: string }): Promise<(Offer & { venue?: Venue })[]>;
@@ -347,44 +348,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ─── Events ────────────────────────────────────────────────────
-  async getEvents(filters?: { teamId?: string; sportId?: string; leagueId?: string }): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team })[]> {
-    let conditions: any = undefined;
+  async getEvents(filters?: { teamId?: string; sportId?: string; leagueId?: string; eventType?: string; q?: string }): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team; teamTags: Team[] })[]> {
+    const clauses: any[] = [];
     if (filters?.teamId) {
-      conditions = sql`${events.teamId} = ${filters.teamId} OR ${events.awayTeamId} = ${filters.teamId}`;
-    } else if (filters?.leagueId) {
-      conditions = eq(events.leagueId, filters.leagueId);
-    } else if (filters?.sportId) {
-      conditions = eq(events.sportId, filters.sportId);
+      const tagged = await db.select({ eventId: eventTeams.eventId }).from(eventTeams).where(eq(eventTeams.teamId, filters.teamId));
+      const taggedIds = tagged.map(r => r.eventId);
+      if (taggedIds.length > 0) {
+        clauses.push(sql`(${events.teamId} = ${filters.teamId} OR ${events.awayTeamId} = ${filters.teamId} OR ${events.id} IN (${sql.join(taggedIds.map(id => sql`${id}`), sql`, `)}))`);
+      } else {
+        clauses.push(sql`(${events.teamId} = ${filters.teamId} OR ${events.awayTeamId} = ${filters.teamId})`);
+      }
     }
+    if (filters?.leagueId) clauses.push(eq(events.leagueId, filters.leagueId));
+    if (filters?.sportId) clauses.push(eq(events.sportId, filters.sportId));
+    if (filters?.eventType) clauses.push(eq(events.eventType, filters.eventType));
+    if (filters?.q) clauses.push(sql`${events.title} ILIKE ${'%' + filters.q + '%'}`);
 
+    const conditions = clauses.length === 0 ? undefined : clauses.length === 1 ? clauses[0] : and(...clauses);
     const allEvents = conditions
       ? await db.select().from(events).where(conditions).orderBy(desc(events.date))
       : await db.select().from(events).orderBy(desc(events.date));
 
-    const enriched = await Promise.all(allEvents.map(async (event) => {
-      let venue: Venue | undefined;
-      let homeTeam: Team | undefined;
-      let awayTeam: Team | undefined;
-      if (event.venueId) {
-        const [v] = await db.select().from(venues).where(eq(venues.id, event.venueId));
-        venue = v;
-      }
-      if (event.teamId) {
-        const [t] = await db.select().from(teams).where(eq(teams.id, event.teamId));
-        homeTeam = t;
-      }
-      if (event.awayTeamId) {
-        const [t] = await db.select().from(teams).where(eq(teams.id, event.awayTeamId));
-        awayTeam = t;
-      }
-      return { ...event, venue, homeTeam, awayTeam };
-    }));
+    const enriched = await Promise.all(allEvents.map(e => this.enrichEvent(e)));
     return enriched;
   }
 
-  async getEvent(id: string): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team }) | undefined> {
+  async getEvent(id: string): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team; teamTags: Team[] }) | undefined> {
     const [event] = await db.select().from(events).where(eq(events.id, id));
     if (!event) return undefined;
+    return this.enrichEvent(event);
+  }
+
+  private async enrichEvent(event: Event): Promise<Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team; teamTags: Team[] }> {
     let venue: Venue | undefined;
     let homeTeam: Team | undefined;
     let awayTeam: Team | undefined;
@@ -400,7 +395,12 @@ export class DatabaseStorage implements IStorage {
       const [t] = await db.select().from(teams).where(eq(teams.id, event.awayTeamId));
       awayTeam = t;
     }
-    return { ...event, venue, homeTeam, awayTeam };
+    const tagRows = await db.select().from(eventTeams).where(eq(eventTeams.eventId, event.id));
+    const tagTeamIds = tagRows.map(r => r.teamId);
+    const teamTags = tagTeamIds.length > 0
+      ? await db.select().from(teams).where(inArray(teams.id, tagTeamIds))
+      : [];
+    return { ...event, venue, homeTeam, awayTeam, teamTags };
   }
 
   async createEvent(event: InsertEvent): Promise<Event> {
@@ -423,6 +423,14 @@ export class DatabaseStorage implements IStorage {
   async getEventRsvps(eventId: string): Promise<string[]> {
     const rows = await db.select({ userId: eventRsvps.userId }).from(eventRsvps).where(eq(eventRsvps.eventId, eventId));
     return rows.map(r => r.userId);
+  }
+
+  async getUserRsvpEvents(userId: string): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team; teamTags: Team[] })[]> {
+    const rows = await db.select({ eventId: eventRsvps.eventId }).from(eventRsvps).where(eq(eventRsvps.userId, userId));
+    const ids = rows.map(r => r.eventId);
+    if (ids.length === 0) return [];
+    const rsvpEvents = await db.select().from(events).where(inArray(events.id, ids)).orderBy(desc(events.date));
+    return Promise.all(rsvpEvents.map(e => this.enrichEvent(e)));
   }
 
   // ─── Offers ────────────────────────────────────────────────────

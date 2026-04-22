@@ -11,8 +11,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-const DEFAULT_CENTER: [number, number] = [41.8827, -87.6233];
-const DEFAULT_ZOOM = 13;
+const DEFAULT_CENTER: [number, number] = [34.0522, -118.2437]; // Los Angeles
+const DEFAULT_ZOOM = 11;
 
 function createColoredIcon(color: string) {
   return L.divIcon({

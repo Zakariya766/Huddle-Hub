@@ -267,9 +267,37 @@ export async function registerRoutes(
       teamId: qs(req.query.teamId),
       sportId: qs(req.query.sportId),
       leagueId: qs(req.query.leagueId),
+      eventType: qs(req.query.eventType),
+      q: qs(req.query.q),
     };
     const allEvents = await storage.getEvents(filters);
     res.json(allEvents);
+  });
+
+  // ─── Unified Search ────────────────────────────────────────────
+  app.get("/api/search", async (req, res) => {
+    const q = qs(req.query.q);
+    const filters = {
+      teamId: qs(req.query.teamId),
+      sportId: qs(req.query.sportId),
+      eventType: qs(req.query.eventType),
+      q,
+    };
+    const [matchedEvents, matchedVenues] = await Promise.all([
+      storage.getEvents(filters),
+      storage.getVenues({
+        teamId: qs(req.query.teamId),
+        sportId: qs(req.query.sportId),
+        neighborhood: qs(req.query.neighborhood),
+      }),
+    ]);
+    const venuesFiltered = q
+      ? matchedVenues.filter(v =>
+          v.name.toLowerCase().includes(q.toLowerCase()) ||
+          (v.neighborhood?.toLowerCase().includes(q.toLowerCase()) ?? false)
+        )
+      : matchedVenues;
+    res.json({ events: matchedEvents, venues: venuesFiltered });
   });
 
   app.get("/api/events/:id", async (req, res) => {
@@ -286,6 +314,11 @@ export async function registerRoutes(
   app.get("/api/events/:id/rsvps", async (req, res) => {
     const rsvps = await storage.getEventRsvps(p(req.params.id));
     res.json(rsvps);
+  });
+
+  app.get("/api/me/events", requireAuth, async (req, res) => {
+    const mine = await storage.getUserRsvpEvents(req.session.userId!);
+    res.json(mine);
   });
 
   // ─── Offers ────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import { AuthProvider } from "@/lib/auth";
 import { BottomNav } from "@/components/bottom-nav";
 import HomePage from "@/pages/home";
 import DiscoverPage from "@/pages/discover";
+import SearchPage from "@/pages/search";
 import EventsPage from "@/pages/events";
 import FifaPage from "@/pages/fifa";
 import OffersPage from "@/pages/offers";
@@ -22,6 +23,7 @@ function Router() {
     <Switch>
       <Route path="/" component={HomePage} />
       <Route path="/discover" component={DiscoverPage} />
+      <Route path="/search" component={SearchPage} />
       <Route path="/events" component={EventsPage} />
       <Route path="/events/:id" component={EventsPage} />
       <Route path="/worldcup" component={FifaPage} />

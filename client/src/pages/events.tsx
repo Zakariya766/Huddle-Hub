@@ -1,210 +1,125 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Calendar, MapPin, Users, Filter, ChevronRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { CalendarPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format } from "date-fns";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Sport, League, Team, Venue, Event } from "@shared/schema";
+import { EventCard, type EventWithRelations } from "@/components/event-card";
 
 export default function EventsPage() {
-  const [sportFilter, setSportFilter] = useState<string>("");
-  const [leagueFilter, setLeagueFilter] = useState<string>("");
-  const [teamFilter, setTeamFilter] = useState<string>("");
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
-  const { data: sports } = useQuery<Sport[]>({ queryKey: ["/api/sports"] });
-  const { data: leagues } = useQuery<League[]>({ queryKey: ["/api/leagues"] });
-  const { data: teams } = useQuery<Team[]>({
-    queryKey: ["/api/teams", { leagueId: leagueFilter || undefined }],
+  const { data: myEvents, isLoading, refetch } = useQuery<EventWithRelations[]>({
+    queryKey: ["/api/me/events"],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (leagueFilter) params.set("leagueId", leagueFilter);
-      const res = await fetch(`/api/teams?${params}`);
+      const res = await fetch("/api/me/events", { credentials: "include" });
+      if (!res.ok) return [];
       return res.json();
     },
-    enabled: !!leagueFilter,
-  });
-  const { data: events, refetch } = useQuery<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team })[]>({
-    queryKey: ["/api/events", { sportId: sportFilter || undefined, leagueId: leagueFilter || undefined, teamId: teamFilter || undefined }],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (sportFilter) params.set("sportId", sportFilter);
-      if (leagueFilter) params.set("leagueId", leagueFilter);
-      if (teamFilter) params.set("teamId", teamFilter);
-      const res = await fetch(`/api/events?${params}`);
-      return res.json();
-    },
+    enabled: !!user,
   });
 
-  const { data: userRsvps } = useQuery<string[]>({
-    queryKey: ["/api/events/user-rsvps"],
-    enabled: false, // We'll track locally
-  });
-
-  const [rsvpSet, setRsvpSet] = useState<Set<string>>(new Set());
+  const [pendingUnrsvp, setPendingUnrsvp] = useState<Set<string>>(new Set());
 
   const handleRsvp = async (eventId: string) => {
-    if (!user) {
-      toast({ title: "Sign in to RSVP", variant: "destructive" });
-      return;
-    }
     try {
       const res = await apiRequest("POST", `/api/events/${eventId}/rsvp`);
       const data = await res.json();
-      setRsvpSet(prev => {
-        const next = new Set(prev);
-        if (data.rsvpd) next.add(eventId);
-        else next.delete(eventId);
-        return next;
-      });
+      if (!data.rsvpd) {
+        setPendingUnrsvp(prev => {
+          const n = new Set(prev);
+          n.add(eventId);
+          return n;
+        });
+      }
       refetch();
       toast({ title: data.rsvpd ? "RSVP'd!" : "RSVP removed" });
     } catch {
-      toast({ title: "Failed to RSVP", variant: "destructive" });
+      toast({ title: "Failed to update RSVP", variant: "destructive" });
     }
   };
 
-  const filteredLeagues = sportFilter
-    ? leagues?.filter(l => l.sportId === sportFilter)
-    : leagues;
-
-  const upcomingEvents = events
-    ?.filter(e => new Date(e.date) > new Date())
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) || [];
-
-  const pastEvents = events
-    ?.filter(e => new Date(e.date) <= new Date())
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) || [];
+  const { upcoming, past } = useMemo(() => {
+    const list = myEvents ?? [];
+    const now = Date.now();
+    return {
+      upcoming: list.filter(e => new Date(e.date).getTime() > now).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+      past: list.filter(e => new Date(e.date).getTime() <= now).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    };
+  }, [myEvents]);
 
   return (
     <div className="min-h-screen bg-paper">
       <div className="bg-ink text-paper px-4 pt-10 pb-4">
         <div className="max-w-6xl mx-auto">
-          <h1 className="font-display text-2xl font-bold">Events</h1>
-          <p className="text-sm text-paper/70 mt-1">Watch parties, game nights, and more</p>
+          <h1 className="font-display text-2xl font-bold">My Events</h1>
+          <p className="text-sm text-paper/70 mt-1">Events you've RSVP'd to</p>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 pb-24">
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2 mt-4 mb-4">
-          <Select value={sportFilter} onValueChange={(v) => { setSportFilter(v === "all" ? "" : v); setLeagueFilter(""); setTeamFilter(""); }}>
-            <SelectTrigger className="flex-1 min-w-[120px] h-9 text-sm">
-              <SelectValue placeholder="All Sports" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Sports</SelectItem>
-              {sports?.map(s => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={leagueFilter} onValueChange={(v) => { setLeagueFilter(v === "all" ? "" : v); setTeamFilter(""); }}>
-            <SelectTrigger className="flex-1 min-w-[120px] h-9 text-sm">
-              <SelectValue placeholder="All Leagues" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Leagues</SelectItem>
-              {filteredLeagues?.map(l => (
-                <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {leagueFilter && (
-            <Select value={teamFilter} onValueChange={(v) => setTeamFilter(v === "all" ? "" : v)}>
-              <SelectTrigger className="flex-1 min-w-[140px] h-9 text-sm">
-                <SelectValue placeholder="All Teams" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Teams</SelectItem>
-                {teams?.map(t => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
-        {/* Upcoming Events */}
-        <h2 className="font-display text-sm font-bold text-ink-muted uppercase tracking-wider mb-3">Upcoming</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-          {upcomingEvents.length === 0 && (
-            <p className="text-sm text-ink-muted text-center py-8 col-span-full">No upcoming events found.</p>
-          )}
-          {upcomingEvents.map(event => (
-            <Card key={event.id} className="border-cream hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-ink">{event.title}</h3>
-                    <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-ink-muted">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5" />
-                        {format(new Date(event.date), "EEE, MMM d 'at' h:mm a")}
-                      </span>
-                      {event.venue && (
-                        <Link href={`/venues/${event.venue.id}`}>
-                          <span className="flex items-center gap-1 text-red hover:underline">
-                            <MapPin className="w-3.5 h-3.5" />
-                            {event.venue.name}
-                          </span>
-                        </Link>
-                      )}
-                    </div>
-                    {event.description && (
-                      <p className="text-xs text-ink-muted mt-2 line-clamp-2">{event.description}</p>
-                    )}
-                    <div className="flex items-center gap-2 mt-2">
-                      {event.homeTeam && <Badge variant="outline" className="text-[10px]">{event.homeTeam.name}</Badge>}
-                      {event.awayTeam && <Badge variant="outline" className="text-[10px]">{event.awayTeam.name}</Badge>}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2 ml-3 shrink-0">
-                    <div className="flex items-center gap-1 text-xs text-ink-muted">
-                      <Users className="w-3.5 h-3.5" /> {event.rsvpCount || 0}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant={rsvpSet.has(event.id) ? "outline" : "default"}
-                      className="text-xs h-7 px-3 rounded-full"
-                      onClick={() => handleRsvp(event.id)}
-                    >
-                      {rsvpSet.has(event.id) ? "RSVP'd" : "RSVP"}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Past Events */}
-        {pastEvents.length > 0 && (
+      <div className="max-w-6xl mx-auto px-4 pb-24 pt-6">
+        {authLoading || (user && isLoading) ? (
+          <p className="text-sm text-ink-muted text-center py-10">Loading…</p>
+        ) : !user ? (
+          <EmptyState
+            title="Sign in to see your events"
+            message="RSVP to watch parties and they'll show up here."
+          />
+        ) : upcoming.length === 0 && past.length === 0 ? (
+          <EmptyState
+            title="No events yet"
+            message="Browse watch parties and RSVP to one."
+          />
+        ) : (
           <>
-            <h2 className="font-display text-sm font-bold text-ink-muted uppercase tracking-wider mb-3">Past Events</h2>
-            <div className="space-y-2 opacity-60">
-              {pastEvents.slice(0, 5).map(event => (
-                <Card key={event.id} className="border-cream">
-                  <CardContent className="p-3">
-                    <h3 className="font-medium text-sm text-ink">{event.title}</h3>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-ink-muted">
-                      <Calendar className="w-3 h-3" />
-                      {format(new Date(event.date), "MMM d, yyyy")}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            {upcoming.length > 0 && (
+              <>
+                <h2 className="font-display text-sm font-bold text-ink-muted uppercase tracking-wider mb-3">Upcoming</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+                  {upcoming.map(event => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      rsvpd={!pendingUnrsvp.has(event.id)}
+                      onRsvp={handleRsvp}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {past.length > 0 && (
+              <>
+                <h2 className="font-display text-sm font-bold text-ink-muted uppercase tracking-wider mb-3">Past</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 opacity-60">
+                  {past.slice(0, 10).map(event => (
+                    <EventCard key={event.id} event={event} />
+                  ))}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
     </div>
+  );
+}
+
+function EmptyState({ title, message }: { title: string; message: string }) {
+  return (
+    <Card className="border-cream">
+      <CardContent className="p-10 text-center">
+        <CalendarPlus className="w-8 h-8 text-ink-muted mx-auto mb-3" />
+        <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
+        <p className="text-sm text-ink-muted mt-1 mb-4">{message}</p>
+        <Link href="/search?eventType=watch-party">
+          <Button size="sm" className="rounded-full">Find events</Button>
+        </Link>
+      </CardContent>
+    </Card>
   );
 }
