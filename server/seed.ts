@@ -1,16 +1,72 @@
 import { db } from "./db";
 import {
   users, sports, leagues, teams, posts, comments, likes,
-  venues, venueTeamAffiliations, events, eventTeams, offers,
+  venues, venueTeamAffiliations, events, eventTeams, eventRsvps, offers,
   communityRooms, roomMessages, reviews, checkins,
 } from "@shared/schema";
-import { sql } from "drizzle-orm";
+import { sql, inArray } from "drizzle-orm";
+
+// Demo fixtures — re-seeded on every boot so dates always look "upcoming".
+// User-created events (with uuid ids) are preserved.
+const SEEDED_EVENT_IDS = Array.from({ length: 15 }, (_, i) => `event-${i + 1}`);
+
+function buildSeededEventData(now: Date) {
+  const day = (n: number) => new Date(now.getTime() + 86400000 * n);
+  const hour = (d: Date, h: number) => { const x = new Date(d); x.setHours(h, 0, 0, 0); return x; };
+  return [
+    { id: "event-1",  venueId: "venue-7",  teamId: "team-rams",     awayTeamId: "team-49ers",   sportId: "sport-football",   leagueId: "league-nfl",    title: "Rams 2026 NFL Draft Recap Watch Party",                description: "Tom's Watch Bar breaks down LA's draft class. Drink specials, sports talk, and 120+ screens.",      date: hour(day(2),  19), rsvpCount: 38, eventType: "watch-party" },
+    { id: "event-2",  venueId: "venue-22", teamId: "team-chargers", awayTeamId: "team-chiefs",  sportId: "sport-football",   leagueId: "league-nfl",    title: "AFC West 2026 Schedule Release Show",                  description: "Brickhouse hosts the schedule reveal. First peek at Chargers + Chiefs + Raiders home dates.",       date: hour(day(5),  17), rsvpCount: 24, eventType: "watch-party" },
+    { id: "event-3",  venueId: "venue-4",  teamId: "team-dodgers",  awayTeamId: "team-angels",  sportId: "sport-baseball",   leagueId: "league-mlb",    title: "Dodgers vs Angels — Freeway Series",                   description: "Barney's pulls out the big screens for the early-season Freeway Series. Beer specials all 3 games.", date: hour(day(3),  19), rsvpCount: 52, eventType: "watch-party" },
+    { id: "event-4",  venueId: "venue-14", teamId: "team-lafc",     awayTeamId: "team-lagalaxy",sportId: "sport-soccer",     leagueId: "league-mls",    title: "El Tráfico — LAFC vs LA Galaxy",                       description: "Red Lion Tavern's biggest night. The MLS rivalry that defines the city.",                          date: hour(day(4),  19), rsvpCount: 78, eventType: "watch-party" },
+    { id: "event-5",  venueId: "venue-1",  teamId: "team-arsenal",  awayTeamId: "team-chelsea", sportId: "sport-soccer",     leagueId: "league-epl",    title: "Arsenal vs Chelsea — Top 4 Showdown",                  description: "Premier League run-in at Ye Olde King's Head. Doors 7 AM, full English breakfast.",                date: hour(day(6),   7), rsvpCount: 41, eventType: "watch-party" },
+    { id: "event-6",  venueId: "venue-9",  teamId: "team-mexico",   awayTeamId: "team-usa",     sportId: "sport-fifa",       leagueId: "league-fifawc", title: "USA vs Mexico — World Cup 2026 Tune-Up",               description: "La Cita Bar packs out for the pre-WC friendly. Both jerseys, one bar, expect noise.",              date: hour(day(8),  18), rsvpCount: 95, eventType: "watch-party" },
+    { id: "event-7",  venueId: "venue-7",  teamId: "team-usa",      awayTeamId: "team-england", sportId: "sport-fifa",       leagueId: "league-fifawc", title: "USA vs England — WC 2026 Group Stage Friendly",        description: "Tom's projects on every screen. World Cup hits LA in 6 weeks — get warmed up.",                    date: hour(day(11), 16), rsvpCount: 130, eventType: "watch-party" },
+    { id: "event-8",  venueId: "venue-23", teamId: "team-chivas",   awayTeamId: "team-america", sportId: "sport-soccer",     leagueId: "league-ligamx", title: "Club América vs Chivas — Liga MX Clásico",             description: "La Numero Uno is wall-to-wall jerseys. Bring your colors and your voice.",                         date: hour(day(7),  19), rsvpCount: 64, eventType: "watch-party" },
+    { id: "event-9",  venueId: "venue-13", teamId: "team-usc",      awayTeamId: "team-ucla",    sportId: "sport-football",   leagueId: "league-cfb",    title: "USC vs UCLA — 2026 Schedule Release Party",            description: "The 35er marks the day Pac fans get the new slate. Trojan & Bruin tables both welcome.",            date: hour(day(9),  18), rsvpCount: 22, eventType: "watch-party" },
+    { id: "event-10", venueId: "venue-11", teamId: "team-korea",    awayTeamId: "team-japan",   sportId: "sport-fifa",       leagueId: "league-fifawc", title: "South Korea vs Japan — Friendly",                      description: "The Prince in Koreatown. KBBQ menu + the rivalry that owns East Asia.",                            date: hour(day(13), 19), rsvpCount: 29, eventType: "watch-party" },
+    { id: "event-11", venueId: "venue-7",  teamId: "team-lakers",   awayTeamId: "team-celtics", sportId: "sport-basketball", leagueId: "league-nba",    title: "Lakers vs Celtics — NBA Finals Preview",               description: "Tom's expects a Finals matchup. The greatest rivalry in basketball, regular-season closer.",        date: hour(day(1),  19), rsvpCount: 88, eventType: "watch-party" },
+    { id: "event-12", venueId: "venue-10", teamId: "team-lakers",   awayTeamId: "team-warriors",sportId: "sport-basketball", leagueId: "league-nba",    title: "Lakers vs Warriors — Playoff Stakes",                  description: "HMS Bounty's mid-Wilshire viewing party. Old-school spot, new-era LeBron / Curry chess match.",     date: hour(day(2),  19), rsvpCount: 61, eventType: "watch-party" },
+    { id: "event-13", venueId: "venue-22", teamId: "team-rams",     awayTeamId: null as any,    sportId: "sport-football",   leagueId: "league-nfl",    title: "Rams Schedule Release Tailgate",                       description: "Brickhouse's pre-season tailgate at SoFi. BBQ, DJ, and the schedule drop on the big screen.",      date: hour(day(10), 16), rsvpCount: 40, eventType: "tailgate" },
+    { id: "event-14", venueId: "venue-1",  teamId: null as any,     awayTeamId: null as any,    sportId: "sport-soccer",     leagueId: "league-epl",    title: "Premier League Saturday Morning Pub",                   description: "Ye Olde King's Head, weekly. 6 EPL matches on the big screens, full English on every plate.",      date: hour(day(0),   7), rsvpCount: 18, eventType: "bar-special" },
+    { id: "event-15", venueId: "venue-4",  teamId: "team-dodgers",  awayTeamId: null as any,    sportId: "sport-baseball",   leagueId: "league-mlb",    title: "Dodgers Brunch & Bullpen Day",                         description: "Casual game-day meetup at Barney's. Brunch + the Dodger broadcast. Bring your gear.",              date: hour(day(12), 11), rsvpCount: 16, eventType: "meetup" },
+  ] as const;
+}
+
+// Per-event cover images — famous player from one of the matchup teams.
+// Sourced from Wikipedia (Wikimedia Commons, freely hotlinkable).
+const EVENT_IMAGES: Record<string, string> = {
+  "event-1":  "https://upload.wikimedia.org/wikipedia/commons/5/51/Cooper_Kupp.jpg",
+  "event-2":  "https://upload.wikimedia.org/wikipedia/commons/9/92/Patrick_Mahomes_%2851615475056%29.jpg",
+  "event-3":  "https://upload.wikimedia.org/wikipedia/commons/e/e6/Dodgers_at_Nationals_%2853677192000%29_%28cropped%29.jpg",
+  "event-4":  "https://upload.wikimedia.org/wikipedia/commons/6/6d/Mex-Kor_%2821%29_%28cropped%29.jpg",
+  "event-5":  "https://upload.wikimedia.org/wikipedia/commons/c/cd/1_bukayo_saka_arsenal_2025_%28cropped%29.jpg",
+  "event-6":  "https://upload.wikimedia.org/wikipedia/commons/7/71/Christian_Pulisic_USMNT_v_Belgium_Mar_28_2026-73_%28cropped%29.jpg",
+  "event-7":  "https://upload.wikimedia.org/wikipedia/commons/9/91/Harry_Kane_on_October_10%2C_2023.jpg",
+  "event-8":  "https://upload.wikimedia.org/wikipedia/commons/3/30/Henry_Martin_2.png",
+  "event-9":  "https://upload.wikimedia.org/wikipedia/commons/a/af/Reggie_Bush_by_Gage_Skidmore.jpg",
+  "event-10": "https://upload.wikimedia.org/wikipedia/commons/b/b0/BFA_2023_-2_Heung-Min_Son_%28cropped%29.jpg",
+  "event-11": "https://upload.wikimedia.org/wikipedia/commons/7/7a/LeBron_James_%2851959977144%29_%28cropped2%29.jpg",
+  "event-12": "https://upload.wikimedia.org/wikipedia/commons/5/52/Stephen_Curry%2C_Olympic_Games_2024_%28cropped%29.jpg",
+  "event-13": "https://upload.wikimedia.org/wikipedia/commons/5/53/Stafford_6_731_%28cropped3%29.jpg",
+  "event-14": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Mohamed_Salah_2018.jpg",
+  "event-15": "https://upload.wikimedia.org/wikipedia/commons/7/70/Clayton_Kershaw_on_July_23%2C_2015_%282%29.jpg",
+};
+
+function withEventImages<T extends { id: string }>(rows: T[]): (T & { imageUrl?: string })[] {
+  return rows.map(r => ({ ...r, imageUrl: EVENT_IMAGES[r.id] }));
+}
 
 export async function seedDatabase() {
+  // Apply additive column migrations on every boot (idempotent).
+  await applyAdditiveMigrations();
+
   // Check if already seeded
   const existing = await db.select().from(sports);
   if (existing.length > 0) {
     await refreshEvents();
+    await refreshVenueImages();
+    await refreshSportNames();
+    await refreshEventImages();
     return;
   }
 
@@ -18,9 +74,9 @@ export async function seedDatabase() {
 
   // ─── Sports ────────────────────────────────────────────────────
   const sportsData = [
-    { id: "sport-football", name: "American Football", slug: "football", icon: "football" },
+    { id: "sport-football", name: "Football", slug: "football", icon: "football" },
     { id: "sport-basketball", name: "Basketball", slug: "basketball", icon: "dribbble" },
-    { id: "sport-soccer", name: "Soccer / Football", slug: "soccer", icon: "circle" },
+    { id: "sport-soccer", name: "Soccer", slug: "soccer", icon: "circle" },
     { id: "sport-baseball", name: "Baseball", slug: "baseball", icon: "circle-dot" },
     { id: "sport-fifa", name: "World Cup", slug: "fifa", icon: "trophy" },
   ];
@@ -277,24 +333,8 @@ export async function seedDatabase() {
   await db.insert(likes).values(likeData);
 
   // ─── Events ─────────────────────────────────────────────────────
-  const eventData = [
-    { id: "event-1", venueId: "venue-7", teamId: "team-rams", awayTeamId: "team-49ers", sportId: "sport-football", leagueId: "league-nfl", title: "Rams vs 49ers Watch Party", description: "NFC West rivalry at Tom's Watch Bar. 120+ screens, drink specials all game long!", date: new Date(now.getTime() + 86400000 * 3), rsvpCount: 65, eventType: "watch-party" },
-    { id: "event-2", venueId: "venue-22", teamId: "team-chargers", awayTeamId: "team-chiefs", sportId: "sport-football", leagueId: "league-nfl", title: "Chargers vs Chiefs", description: "AFC West showdown at Brickhouse, steps from SoFi. Pre-game specials start at 11 AM.", date: new Date(now.getTime() + 86400000 * 5), rsvpCount: 42, eventType: "watch-party" },
-    { id: "event-3", venueId: "venue-4", teamId: "team-dodgers", awayTeamId: "team-angels", sportId: "sport-baseball", leagueId: "league-mlb", title: "Dodgers vs Angels — Freeway Series", description: "The Freeway Series at Barney's Beanery. LA vs LA on every screen.", date: new Date(now.getTime() + 86400000 * 7), rsvpCount: 38, eventType: "watch-party" },
-    { id: "event-4", venueId: "venue-14", teamId: "team-lafc", awayTeamId: "team-lagalaxy", sportId: "sport-soccer", leagueId: "league-mls", title: "El Trafico: LAFC vs Galaxy", description: "LA's biggest derby at Red Lion Tavern. The rivalry that defines the city.", date: new Date(now.getTime() + 86400000 * 4), rsvpCount: 55, eventType: "watch-party" },
-    { id: "event-5", venueId: "venue-1", teamId: "team-arsenal", awayTeamId: "team-chelsea", sportId: "sport-soccer", leagueId: "league-epl", title: "Arsenal vs Chelsea — London Derby", description: "Early morning Premier League at Ye Olde King's Head. Doors open at 7 AM.", date: new Date(now.getTime() + 86400000 * 6), rsvpCount: 48, eventType: "watch-party" },
-    { id: "event-6", venueId: "venue-9", teamId: "team-mexico", awayTeamId: "team-usa", sportId: "sport-fifa", leagueId: "league-fifawc", title: "Mexico vs USA — World Cup Qualifier", description: "The biggest rivalry in CONCACAF at La Cita Bar. Expect fireworks.", date: new Date(now.getTime() + 86400000 * 10), rsvpCount: 80, eventType: "watch-party" },
-    { id: "event-7", venueId: "venue-7", teamId: "team-usa", awayTeamId: "team-england", sportId: "sport-fifa", leagueId: "league-fifawc", title: "USA vs England — World Cup 2026", description: "World Cup group stage at Tom's Watch Bar. The whole city will be watching.", date: new Date(now.getTime() + 86400000 * 14), rsvpCount: 120, eventType: "watch-party" },
-    { id: "event-8", venueId: "venue-23", teamId: "team-chivas", awayTeamId: "team-america", sportId: "sport-soccer", leagueId: "league-ligamx", title: "Chivas vs America — El Super Clasico", description: "The biggest game in Mexican football at La Numero Uno. Bring your jersey.", date: new Date(now.getTime() + 86400000 * 8), rsvpCount: 70, eventType: "watch-party" },
-    { id: "event-9", venueId: "venue-13", teamId: "team-usc", awayTeamId: "team-ucla", sportId: "sport-football", leagueId: "league-cfb", title: "USC vs UCLA — The Crosstown Rivalry", description: "College football's best LA rivalry at The 35er. Who runs this town?", date: new Date(now.getTime() + 86400000 * 12), rsvpCount: 50, eventType: "watch-party" },
-    { id: "event-10", venueId: "venue-11", teamId: "team-korea", awayTeamId: "team-japan", sportId: "sport-fifa", leagueId: "league-fifawc", title: "South Korea vs Japan — World Cup", description: "East Asian rivalry match at The Prince in Koreatown. Special Korean BBQ menu.", date: new Date(now.getTime() + 86400000 * 16), rsvpCount: 45, eventType: "watch-party" },
-    { id: "event-11", venueId: "venue-7", teamId: "team-lakers", awayTeamId: "team-celtics", sportId: "sport-basketball", leagueId: "league-nba", title: "Lakers vs Celtics", description: "The greatest rivalry in basketball at Tom's Watch Bar. Lake Show vs Banner 18.", date: new Date(now.getTime() + 86400000 * 2), rsvpCount: 75, eventType: "watch-party" },
-    { id: "event-12", venueId: "venue-10", teamId: "team-lakers", awayTeamId: "team-warriors", sportId: "sport-basketball", leagueId: "league-nba", title: "Lakers vs Warriors", description: "Western Conference clash at HMS Bounty. Old-school vibes for a modern rivalry.", date: new Date(now.getTime() + 86400000 * 9), rsvpCount: 40, eventType: "watch-party" },
-    { id: "event-13", venueId: "venue-22", teamId: "team-rams", sportId: "sport-football", leagueId: "league-nfl", title: "Rams Tailgate at SoFi", description: "Brickhouse's legendary pre-game tailgate. BBQ, live DJ, and the walk over to SoFi.", date: new Date(now.getTime() + 86400000 * 11), rsvpCount: 90, eventType: "tailgate" },
-    { id: "event-14", venueId: "venue-1", sportId: "sport-soccer", leagueId: "league-epl", title: "Premier League Saturday Morning Pub", description: "Full English breakfast + 6 EPL matches on the big screens. Weekly event.", date: new Date(now.getTime() + 86400000 * 1), rsvpCount: 22, eventType: "bar-special" },
-    { id: "event-15", venueId: "venue-4", teamId: "team-dodgers", sportId: "sport-baseball", leagueId: "league-mlb", title: "Dodgers Fan Meetup", description: "Casual meetup for Dodgers fans before the home opener. Bring your gear.", date: new Date(now.getTime() + 86400000 * 15), rsvpCount: 18, eventType: "meetup" },
-  ];
-  await db.insert(events).values(eventData);
+  const eventData = buildSeededEventData(now) as any[];
+  await db.insert(events).values(withEventImages(eventData));
 
   // ─── Event Team Tags (multi-team per event) ─────────────────────
   const eventTeamData = eventData.flatMap(e => {
@@ -375,38 +415,46 @@ export async function seedDatabase() {
   console.log("Database seeded successfully with Greater Los Angeles data!");
 }
 
-// Idempotent event refresh so existing seeded DBs pick up new event_type / event_teams
+// Idempotent image backfill so redesigned UI has a path to look up per-venue photos
+async function refreshVenueImages() {
+  await db.execute(sql`UPDATE venues SET image_url = '/venues/' || id || '.jpg' WHERE image_url IS NULL OR image_url = ''`);
+}
+
+// Idempotent sport name cleanup
+async function refreshSportNames() {
+  await db.execute(sql`UPDATE sports SET name = 'Football' WHERE id = 'sport-football' AND name <> 'Football'`);
+  await db.execute(sql`UPDATE sports SET name = 'Soccer' WHERE id = 'sport-soccer' AND name <> 'Soccer'`);
+}
+
+// Re-seed demo events on every boot so dates/titles always look fresh.
+// Only touches the canonical event-1..15 rows; user-created events (uuid ids) are preserved.
 async function refreshEvents() {
-  const hasNewEvents = await db.execute(sql`SELECT 1 FROM events WHERE id = 'event-13' LIMIT 1`);
-  if ((hasNewEvents as any).rows?.length > 0) return;
-  console.log("Refreshing events with new schema (event_type + event_teams)...");
-  await db.execute(sql`DELETE FROM event_teams`);
-  await db.execute(sql`DELETE FROM event_rsvps`);
-  await db.execute(sql`DELETE FROM events`);
+  await db.delete(eventRsvps).where(inArray(eventRsvps.eventId, SEEDED_EVENT_IDS));
+  await db.delete(eventTeams).where(inArray(eventTeams.eventId, SEEDED_EVENT_IDS));
+  await db.delete(events).where(inArray(events.id, SEEDED_EVENT_IDS));
   const now = new Date();
-  const eventData = [
-    { id: "event-1", venueId: "venue-7", teamId: "team-rams", awayTeamId: "team-49ers", sportId: "sport-football", leagueId: "league-nfl", title: "Rams vs 49ers Watch Party", description: "NFC West rivalry at Tom's Watch Bar. 120+ screens, drink specials all game long!", date: new Date(now.getTime() + 86400000 * 3), rsvpCount: 65, eventType: "watch-party" },
-    { id: "event-2", venueId: "venue-22", teamId: "team-chargers", awayTeamId: "team-chiefs", sportId: "sport-football", leagueId: "league-nfl", title: "Chargers vs Chiefs", description: "AFC West showdown at Brickhouse, steps from SoFi. Pre-game specials start at 11 AM.", date: new Date(now.getTime() + 86400000 * 5), rsvpCount: 42, eventType: "watch-party" },
-    { id: "event-3", venueId: "venue-4", teamId: "team-dodgers", awayTeamId: "team-angels", sportId: "sport-baseball", leagueId: "league-mlb", title: "Dodgers vs Angels — Freeway Series", description: "The Freeway Series at Barney's Beanery. LA vs LA on every screen.", date: new Date(now.getTime() + 86400000 * 7), rsvpCount: 38, eventType: "watch-party" },
-    { id: "event-4", venueId: "venue-14", teamId: "team-lafc", awayTeamId: "team-lagalaxy", sportId: "sport-soccer", leagueId: "league-mls", title: "El Trafico: LAFC vs Galaxy", description: "LA's biggest derby at Red Lion Tavern. The rivalry that defines the city.", date: new Date(now.getTime() + 86400000 * 4), rsvpCount: 55, eventType: "watch-party" },
-    { id: "event-5", venueId: "venue-1", teamId: "team-arsenal", awayTeamId: "team-chelsea", sportId: "sport-soccer", leagueId: "league-epl", title: "Arsenal vs Chelsea — London Derby", description: "Early morning Premier League at Ye Olde King's Head. Doors open at 7 AM.", date: new Date(now.getTime() + 86400000 * 6), rsvpCount: 48, eventType: "watch-party" },
-    { id: "event-6", venueId: "venue-9", teamId: "team-mexico", awayTeamId: "team-usa", sportId: "sport-fifa", leagueId: "league-fifawc", title: "Mexico vs USA — World Cup Qualifier", description: "The biggest rivalry in CONCACAF at La Cita Bar. Expect fireworks.", date: new Date(now.getTime() + 86400000 * 10), rsvpCount: 80, eventType: "watch-party" },
-    { id: "event-7", venueId: "venue-7", teamId: "team-usa", awayTeamId: "team-england", sportId: "sport-fifa", leagueId: "league-fifawc", title: "USA vs England — World Cup 2026", description: "World Cup group stage at Tom's Watch Bar. The whole city will be watching.", date: new Date(now.getTime() + 86400000 * 14), rsvpCount: 120, eventType: "watch-party" },
-    { id: "event-8", venueId: "venue-23", teamId: "team-chivas", awayTeamId: "team-america", sportId: "sport-soccer", leagueId: "league-ligamx", title: "Chivas vs America — El Super Clasico", description: "The biggest game in Mexican football at La Numero Uno. Bring your jersey.", date: new Date(now.getTime() + 86400000 * 8), rsvpCount: 70, eventType: "watch-party" },
-    { id: "event-9", venueId: "venue-13", teamId: "team-usc", awayTeamId: "team-ucla", sportId: "sport-football", leagueId: "league-cfb", title: "USC vs UCLA — The Crosstown Rivalry", description: "College football's best LA rivalry at The 35er. Who runs this town?", date: new Date(now.getTime() + 86400000 * 12), rsvpCount: 50, eventType: "watch-party" },
-    { id: "event-10", venueId: "venue-11", teamId: "team-korea", awayTeamId: "team-japan", sportId: "sport-fifa", leagueId: "league-fifawc", title: "South Korea vs Japan — World Cup", description: "East Asian rivalry match at The Prince in Koreatown. Special Korean BBQ menu.", date: new Date(now.getTime() + 86400000 * 16), rsvpCount: 45, eventType: "watch-party" },
-    { id: "event-11", venueId: "venue-7", teamId: "team-lakers", awayTeamId: "team-celtics", sportId: "sport-basketball", leagueId: "league-nba", title: "Lakers vs Celtics", description: "The greatest rivalry in basketball at Tom's Watch Bar. Lake Show vs Banner 18.", date: new Date(now.getTime() + 86400000 * 2), rsvpCount: 75, eventType: "watch-party" },
-    { id: "event-12", venueId: "venue-10", teamId: "team-lakers", awayTeamId: "team-warriors", sportId: "sport-basketball", leagueId: "league-nba", title: "Lakers vs Warriors", description: "Western Conference clash at HMS Bounty. Old-school vibes for a modern rivalry.", date: new Date(now.getTime() + 86400000 * 9), rsvpCount: 40, eventType: "watch-party" },
-    { id: "event-13", venueId: "venue-22", teamId: "team-rams", sportId: "sport-football", leagueId: "league-nfl", title: "Rams Tailgate at SoFi", description: "Brickhouse's legendary pre-game tailgate. BBQ, live DJ, and the walk over to SoFi.", date: new Date(now.getTime() + 86400000 * 11), rsvpCount: 90, eventType: "tailgate" },
-    { id: "event-14", venueId: "venue-1", sportId: "sport-soccer", leagueId: "league-epl", title: "Premier League Saturday Morning Pub", description: "Full English breakfast + 6 EPL matches on the big screens. Weekly event.", date: new Date(now.getTime() + 86400000 * 1), rsvpCount: 22, eventType: "bar-special" },
-    { id: "event-15", venueId: "venue-4", teamId: "team-dodgers", sportId: "sport-baseball", leagueId: "league-mlb", title: "Dodgers Fan Meetup", description: "Casual meetup for Dodgers fans before the home opener. Bring your gear.", date: new Date(now.getTime() + 86400000 * 15), rsvpCount: 18, eventType: "meetup" },
-  ];
-  await db.insert(events).values(eventData);
+  const eventData = buildSeededEventData(now) as any[];
+  await db.insert(events).values(withEventImages(eventData));
   const eventTeamData = eventData.flatMap(e => {
     const tags: { eventId: string; teamId: string }[] = [];
     if (e.teamId) tags.push({ eventId: e.id, teamId: e.teamId });
-    if ((e as any).awayTeamId) tags.push({ eventId: e.id, teamId: (e as any).awayTeamId });
+    if (e.awayTeamId) tags.push({ eventId: e.id, teamId: e.awayTeamId });
     return tags;
   });
   if (eventTeamData.length > 0) await db.insert(eventTeams).values(eventTeamData);
+}
+
+// Idempotent additive column migrations — safe to run on every boot.
+async function applyAdditiveMigrations() {
+  await db.execute(sql`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT TRUE`);
+  await db.execute(sql`ALTER TABLE events ADD COLUMN IF NOT EXISTS host_user_id VARCHAR`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_business BOOLEAN DEFAULT FALSE`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS business_venue_id VARCHAR`);
+}
+
+// Push event cover images into already-seeded rows. Idempotent.
+async function refreshEventImages() {
+  for (const [id, url] of Object.entries(EVENT_IMAGES)) {
+    await db.execute(sql`UPDATE events SET image_url = ${url} WHERE id = ${id}`);
+  }
 }

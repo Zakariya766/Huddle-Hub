@@ -16,5 +16,7 @@ services:
         sync: false
       - key: API_FOOTBALL_KEY
         sync: false
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
       - key: MATCH_SYNC_ENABLED
         value: "false"

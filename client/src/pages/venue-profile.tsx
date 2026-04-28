@@ -93,40 +93,55 @@ export default function VenueProfilePage() {
 
   if (!venue) return <div className="p-4 text-center text-ink-muted">Loading...</div>;
 
+  const goBack = () => {
+    if (window.history.length > 1) window.history.back();
+    else window.location.href = "/";
+  };
+
   return (
     <div className="min-h-screen bg-paper pb-24">
-      {/* Header */}
-      <div className="bg-ink text-paper px-4 pt-10 pb-6">
-        <div className="max-w-4xl mx-auto">
-          <Link href="/discover">
-            <button className="flex items-center gap-1 text-sm text-paper/70 hover:text-paper mb-3">
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>
-          </Link>
+      {/* Hero photo */}
+      <div className="relative w-full h-[280px] md:h-[440px] overflow-hidden bg-black">
+        {venue.imageUrl && (
+          <img
+            src={venue.imageUrl}
+            alt={venue.name}
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/40 pointer-events-none" />
+        <button
+          onClick={goBack}
+          className="absolute top-5 left-5 md:top-6 md:left-6 flex items-center gap-1 text-sm text-white/90 hover:text-white bg-black/35 backdrop-blur-sm rounded-full pl-2.5 pr-3.5 py-1.5"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+        <div className="absolute bottom-5 left-5 right-5 md:bottom-8 md:left-10 md:right-10 max-w-4xl mx-auto text-white">
           <div className="flex items-center gap-2 mb-1">
-            <h1 className="font-display text-2xl font-bold">{venue.name}</h1>
-            {venue.verified && <ShieldCheck className="w-5 h-5 text-turf" />}
+            <h1 className="font-headline text-3xl md:text-5xl leading-[1] drop-shadow-sm">{venue.name}</h1>
+            {venue.verified && <ShieldCheck className="w-5 h-5 md:w-6 md:h-6 text-turf shrink-0" />}
           </div>
-          <div className="flex items-center gap-1 text-sm text-paper/70">
+          <div className="flex items-center gap-1 text-sm text-white/85">
             <MapPin className="w-4 h-4" />
             {venue.address}
           </div>
-          <div className="flex items-center gap-4 mt-3">
+          <div className="flex flex-wrap items-center gap-3 mt-2">
             {venue.rating && venue.rating > 0 && (
               <span className="flex items-center gap-1 text-sm text-gold">
                 <Star className="w-4 h-4 fill-current" /> {venue.rating.toFixed(1)}
-                <span className="text-paper/50">({venue.reviewCount})</span>
+                <span className="text-white/60">({venue.reviewCount})</span>
               </span>
             )}
-            <Badge variant="outline" className="text-xs text-paper/80 border-paper/30 capitalize">{venue.category}</Badge>
+            <Badge variant="outline" className="text-xs text-white/90 border-white/40 bg-black/20 backdrop-blur-sm capitalize">{venue.category}</Badge>
             {venue.neighborhood && (
-              <span className="text-xs text-paper/60">{venue.neighborhood}</span>
+              <span className="text-xs text-white/70">{venue.neighborhood}</span>
             )}
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 space-y-6 mt-4">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 space-y-6 mt-6">
         {/* Description */}
         {venue.description && (
           <p className="text-sm text-ink-muted">{venue.description}</p>

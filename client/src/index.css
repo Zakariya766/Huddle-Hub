@@ -6,7 +6,7 @@
 /* Apple clean + vintage football warmth */
 
 :root {
-  /* Core palette */
+  /* Core palette — light mode (default) */
   --paper: 36 33% 97%;        /* warm off-white */
   --paper-deep: 36 25% 93%;   /* slightly darker paper */
   --ink: 220 26% 14%;         /* deep navy-black */
@@ -57,6 +57,7 @@
 
   --font-sans: "Inter", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Oswald", "Inter", sans-serif;
+  --font-headline: "Fraunces", Georgia, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", "SF Mono", monospace;
   --font-serif: Georgia, "Times New Roman", serif;
   --radius: 0.75rem;
@@ -86,6 +87,54 @@
   --muted-border: hsl(var(--muted));
   --accent-border: hsl(var(--accent));
   --destructive-border: hsl(var(--destructive));
+}
+
+/* Dark mode — applied when <html class="dark"> */
+.dark {
+  --paper: 0 0% 5%;
+  --paper-deep: 0 0% 9%;
+  --ink: 0 0% 98%;
+  --ink-muted: 0 0% 65%;
+  --navy: 220 60% 70%;
+  --red: 4 80% 58%;
+  --red-light: 4 80% 65%;
+  --leather: 28 40% 60%;
+  --turf: 152 45% 50%;
+  --cream: 0 0% 13%;
+  --gold: 42 85% 60%;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --border: 0 0% 18%;
+  --card: 0 0% 8%;
+  --card-foreground: var(--ink);
+  --card-border: 0 0% 18%;
+  --popover: 0 0% 10%;
+  --popover-foreground: var(--ink);
+  --popover-border: 0 0% 22%;
+  --secondary: var(--cream);
+  --secondary-foreground: var(--ink);
+  --muted: 0 0% 14%;
+  --muted-foreground: var(--ink-muted);
+  --accent: 0 0% 14%;
+  --accent-foreground: var(--ink);
+  --input: 0 0% 22%;
+  --sidebar: 0 0% 8%;
+  --sidebar-foreground: var(--ink);
+  --sidebar-border: 0 0% 18%;
+  --sidebar-primary: var(--red);
+  --sidebar-accent: 0 0% 14%;
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-ring: var(--red);
+
+  --button-outline: rgba(255,255,255,0.10);
+  --badge-outline: rgba(255,255,255,0.08);
+  --elevate-1: rgba(255,255,255,0.04);
+  --elevate-2: rgba(255,255,255,0.08);
+}
+
+.dark body::before {
+  opacity: 0;
 }
 
 /* ─── BASE STYLES ─── */
@@ -128,6 +177,15 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-weight: 600;
+}
+
+/* ─── HEADLINE (Fraunces) ─── */
+.font-headline {
+  font-family: var(--font-headline);
+  font-weight: 600;
+  font-variation-settings: "opsz" 144, "SOFT" 30;
+  letter-spacing: -0.02em;
+  line-height: 0.98;
 }
 
 /* ─── FIELD LINE PATTERN (subtle background) ─── */

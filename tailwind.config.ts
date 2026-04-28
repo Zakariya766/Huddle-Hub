@@ -101,6 +101,7 @@ export default {
       fontFamily: {
         sans: ["var(--font-sans)"],
         display: ["var(--font-display)"],
+        headline: ["var(--font-headline)"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
       },

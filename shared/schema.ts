@@ -31,6 +31,8 @@ export const users = pgTable("users", {
   avatar: text("avatar"),
   teamId: varchar("team_id"),
   isAdmin: boolean("is_admin").default(false),
+  isBusiness: boolean("is_business").default(false),
+  businessVenueId: varchar("business_venue_id"),
 });
 
 export const teams = pgTable("teams", {
@@ -110,6 +112,8 @@ export const events = pgTable("events", {
   matchId: varchar("match_id"), // link to ingested match
   rsvpCount: integer("rsvp_count").default(0),
   eventType: text("event_type").default("watch-party"), // watch-party | bar-special | tailgate | meetup | other
+  isPublic: boolean("is_public").default(true),
+  hostUserId: varchar("host_user_id"),
 });
 
 export const eventTeams = pgTable("event_teams", {
@@ -327,6 +331,8 @@ export const insertEventSchema = createInsertSchema(events).pick({
   date: true,
   imageUrl: true,
   eventType: true,
+  isPublic: true,
+  hostUserId: true,
 });
 
 export const insertOfferSchema = createInsertSchema(offers).pick({

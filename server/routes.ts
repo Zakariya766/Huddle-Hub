@@ -2,7 +2,8 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { db } from "./db";
 import { storage } from "./storage";
-import { insertPostSchema, insertCommentSchema, insertReportSchema, insertMessageSchema, insertReviewSchema, insertRoomMessageSchema, insertEventSchema, insertOfferSchema, insertVenueSchema } from "@shared/schema";
+import { insertPostSchema, insertCommentSchema, insertReportSchema, insertMessageSchema, insertReviewSchema, insertRoomMessageSchema, insertEventSchema, insertOfferSchema, insertVenueSchema, events, eventRsvps, eventTeams, users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import session from "express-session";
 import { seedDatabase } from "./seed";
 
@@ -319,6 +320,92 @@ export async function registerRoutes(
   app.get("/api/me/events", requireAuth, async (req, res) => {
     const mine = await storage.getUserRsvpEvents(req.session.userId!);
     res.json(mine);
+  });
+
+  // ─── Event create / update / delete (host-owned) ──────────────
+  app.post("/api/events", requireAuth, async (req, res) => {
+    const userId = req.session.userId!;
+    const body = req.body ?? {};
+    const parsed = insertEventSchema.safeParse({
+      ...body,
+      hostUserId: userId,
+      date: body.date ? new Date(body.date) : undefined,
+    });
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid event data", errors: parsed.error.flatten() });
+    }
+    const created = await storage.createEvent(parsed.data);
+    res.json(created);
+  });
+
+  app.put("/api/events/:id", requireAuth, async (req, res) => {
+    const userId = req.session.userId!;
+    const eventId = p(req.params.id);
+    const existing = await storage.getEvent(eventId);
+    if (!existing) return res.status(404).json({ message: "Event not found" });
+    if (existing.hostUserId !== userId) return res.status(403).json({ message: "Not your event" });
+    const body = req.body ?? {};
+    const data: Record<string, unknown> = {};
+    for (const k of ["title", "description", "date", "venueId", "isPublic", "eventType", "imageUrl", "sportId", "leagueId"]) {
+      if (k in body) data[k] = k === "date" ? new Date(body[k]) : body[k];
+    }
+    const updated = await db.update(events).set(data).where(eq(events.id, eventId)).returning();
+    res.json(updated[0]);
+  });
+
+  app.delete("/api/events/:id", requireAuth, async (req, res) => {
+    const userId = req.session.userId!;
+    const eventId = p(req.params.id);
+    const existing = await storage.getEvent(eventId);
+    if (!existing) return res.status(404).json({ message: "Event not found" });
+    if (existing.hostUserId !== userId) return res.status(403).json({ message: "Not your event" });
+    await db.delete(eventRsvps).where(eq(eventRsvps.eventId, eventId));
+    await db.delete(eventTeams).where(eq(eventTeams.eventId, eventId));
+    await db.delete(events).where(eq(events.id, eventId));
+    res.json({ ok: true });
+  });
+
+  // ─── Business setup / dashboard ────────────────────────────────
+  app.post("/api/business/setup", requireAuth, async (req, res) => {
+    const userId = req.session.userId!;
+    const user = await storage.getUser(userId);
+    if (!user) return res.status(401).json({ message: "Not authenticated" });
+    if (user.isBusiness && user.businessVenueId) {
+      return res.status(400).json({ message: "Business already set up" });
+    }
+    const body = req.body ?? {};
+    if (!body.name?.trim() || !body.address?.trim()) {
+      return res.status(400).json({ message: "Name and address are required" });
+    }
+    const venue = await storage.createVenue({
+      name: body.name.trim(),
+      description: body.description ?? null,
+      address: body.address.trim(),
+      city: body.city ?? "Los Angeles",
+      neighborhood: body.neighborhood ?? null,
+      lat: 34.0522,
+      lng: -118.2437,
+      imageUrl: null,
+      category: body.category ?? "Bar",
+      phone: body.phone ?? null,
+      website: body.website ?? null,
+      hours: null,
+      verified: false,
+    } as any);
+    await db.update(users).set({ isBusiness: true, businessVenueId: venue.id }).where(eq(users.id, userId));
+    res.json({ venue });
+  });
+
+  app.get("/api/business/me", requireAuth, async (req, res) => {
+    const userId = req.session.userId!;
+    const user = await storage.getUser(userId);
+    if (!user || !user.isBusiness || !user.businessVenueId) {
+      return res.status(404).json({ message: "Not a business" });
+    }
+    const venue = await storage.getVenue(user.businessVenueId);
+    const allEvents = await storage.getEvents({});
+    const hosted = allEvents.filter(e => e.venueId === user.businessVenueId);
+    res.json({ venue, events: hosted });
   });
 
   // ─── Offers ────────────────────────────────────────────────────
