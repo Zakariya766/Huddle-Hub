@@ -54,7 +54,13 @@ export async function registerRoutes(
     })
   );
 
-  await seedDatabase();
+  // Don't let seeding kill startup — the prod DB already has data from earlier
+  // boots. If a refresh fails, log it and keep going so the server binds the port.
+  try {
+    await seedDatabase();
+  } catch (err) {
+    console.error("seedDatabase failed (continuing anyway):", err);
+  }
 
   // ─── Auth ──────────────────────────────────────────────────────
   app.post("/api/auth/login", async (req, res) => {
