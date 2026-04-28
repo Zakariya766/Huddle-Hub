@@ -59,6 +59,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// Surface any startup error explicitly — without this, an unhandled rejection in the IIFE
+// just prints the entire bundled file as "context" and Render truncates it.
+process.on("unhandledRejection", (reason) => {
+  console.error("UNHANDLED REJECTION:", reason);
+  process.exit(1);
+});
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION:", err);
+  process.exit(1);
+});
+
 (async () => {
   await registerRoutes(httpServer, app);
 
@@ -106,4 +117,7 @@ app.use((req, res, next) => {
       }
     },
   );
-})();
+})().catch((err) => {
+  console.error("STARTUP FAILED:", err);
+  process.exit(1);
+});
