@@ -129,6 +129,13 @@ export const eventRsvps = pgTable("event_rsvps", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const venueFollows = pgTable("venue_follows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  venueId: varchar("venue_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // ─── Offers ───────────────────────────────────────────────────────
 export const offers = pgTable("offers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -383,6 +390,7 @@ export type VenueTeamAffiliation = typeof venueTeamAffiliations.$inferSelect;
 export type Event = typeof events.$inferSelect;
 export type EventTeam = typeof eventTeams.$inferSelect;
 export type EventRsvp = typeof eventRsvps.$inferSelect;
+export type VenueFollow = typeof venueFollows.$inferSelect;
 export type Offer = typeof offers.$inferSelect;
 export type OfferClaim = typeof offerClaims.$inferSelect;
 export type Review = typeof reviews.$inferSelect;

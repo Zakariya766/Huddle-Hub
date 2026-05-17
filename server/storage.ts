@@ -4,7 +4,7 @@ import {
   type Team, type Post, type InsertPost,
   type Comment, type InsertComment,
   type Like, type Venue, type InsertVenue, type VenueTeamAffiliation,
-  type Event, type InsertEvent, type EventRsvp,
+  type Event, type InsertEvent, type EventRsvp, type VenueFollow,
   type Offer, type InsertOffer,
   type OfferClaim, type Report, type InsertReport,
   type Message, type InsertMessage,
@@ -12,7 +12,7 @@ import {
   type Checkin,
   type CommunityRoom, type RoomMessage, type InsertRoomMessage, type RoomMessageReaction,
   users, sports, leagues, teams, posts, comments, likes,
-  venues, venueTeamAffiliations, events, eventTeams, eventRsvps,
+  venues, venueTeamAffiliations, events, eventTeams, eventRsvps, venueFollows,
   offers, offerClaims, reports, messages,
   reviews, checkins,
   communityRooms, roomMessages, roomMessageReactions,
@@ -58,6 +58,10 @@ export interface IStorage {
   updateVenue(id: string, data: Partial<InsertVenue>): Promise<Venue>;
   getVenueAffiliations(venueId: string): Promise<(VenueTeamAffiliation & { team: Team })[]>;
   getVenuesByTeam(teamId: string): Promise<Venue[]>;
+  followVenue(venueId: string, userId: string): Promise<boolean>;
+  getVenueFollowerCount(venueId: string): Promise<number>;
+  isFollowingVenue(venueId: string, userId: string): Promise<boolean>;
+  getFollowedVenues(userId: string): Promise<Venue[]>;
 
   // Events
   getEvents(filters?: { teamId?: string; sportId?: string; leagueId?: string; eventType?: string; q?: string }): Promise<(Event & { venue?: Venue; homeTeam?: Team; awayTeam?: Team; teamTags: Team[] })[]>;
@@ -345,6 +349,35 @@ export class DatabaseStorage implements IStorage {
     if (affs.length === 0) return [];
     const venueIds = affs.map(a => a.venueId);
     return db.select().from(venues).where(inArray(venues.id, venueIds));
+  }
+
+  async followVenue(venueId: string, userId: string): Promise<boolean> {
+    const existing = await db.select().from(venueFollows).where(and(eq(venueFollows.venueId, venueId), eq(venueFollows.userId, userId)));
+    if (existing.length > 0) {
+      await db.delete(venueFollows).where(and(eq(venueFollows.venueId, venueId), eq(venueFollows.userId, userId)));
+      return false;
+    }
+    await db.insert(venueFollows).values({ venueId, userId });
+    return true;
+  }
+
+  async getVenueFollowerCount(venueId: string): Promise<number> {
+    const rows = await db.select({ id: venueFollows.id }).from(venueFollows).where(eq(venueFollows.venueId, venueId));
+    return rows.length;
+  }
+
+  async isFollowingVenue(venueId: string, userId: string): Promise<boolean> {
+    const rows = await db.select({ id: venueFollows.id }).from(venueFollows).where(and(eq(venueFollows.venueId, venueId), eq(venueFollows.userId, userId)));
+    return rows.length > 0;
+  }
+
+  async getFollowedVenues(userId: string): Promise<Venue[]> {
+    const rows = await db.select({ venueId: venueFollows.venueId, createdAt: venueFollows.createdAt }).from(venueFollows).where(eq(venueFollows.userId, userId)).orderBy(desc(venueFollows.createdAt));
+    const ids = rows.map(r => r.venueId);
+    if (ids.length === 0) return [];
+    const list = await db.select().from(venues).where(inArray(venues.id, ids));
+    const order = new Map(ids.map((id, i) => [id, i]));
+    return list.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
   }
 
   // ─── Events ────────────────────────────────────────────────────

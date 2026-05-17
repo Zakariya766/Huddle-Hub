@@ -7,13 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Shield, Check, Search, MessageCircle, Settings, ChevronRight } from "lucide-react";
+import { LogOut, Shield, Check, Search, MessageCircle, Settings, ChevronRight, Heart, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { EventCard, type EventWithRelations } from "@/components/event-card";
-import type { Team, OfferClaim, Offer, User as UserType } from "@shared/schema";
+import { VenueImage } from "@/components/venue-image";
+import type { Team, OfferClaim, Offer, User as UserType, Venue } from "@shared/schema";
 
 export default function ProfilePage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -164,6 +165,15 @@ function UserProfile() {
     },
     enabled: !!user,
   });
+  const { data: followedVenues } = useQuery<Venue[]>({
+    queryKey: ["/api/me/followed-venues"],
+    queryFn: async () => {
+      const res = await fetch("/api/me/followed-venues", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!user,
+  });
   const { data: unread } = useQuery<{ count: number }>({
     queryKey: ["/api/messages/unread-count"],
     enabled: !!user,
@@ -180,8 +190,8 @@ function UserProfile() {
 
   const stats = [
     { label: "Events", value: myEvents?.length ?? 0 },
+    { label: "Following", value: followedVenues?.length ?? 0 },
     { label: "Upcoming", value: upcoming.length },
-    { label: "Claims", value: claims?.length ?? 0 },
   ];
 
   return (
@@ -265,6 +275,34 @@ function UserProfile() {
             )}
           </div>
         </div>
+
+        {/* Following venues */}
+        {followedVenues && followedVenues.length > 0 && (
+          <section className="mb-10">
+            <div className="flex items-end justify-between mb-4">
+              <h2 className="font-headline text-2xl text-ink flex items-center gap-2">
+                <Heart className="w-5 h-5 text-red fill-current" /> Following
+              </h2>
+            </div>
+            <div className="flex gap-4 overflow-x-auto -mx-5 md:-mx-8 px-5 md:px-8 pb-2 scrollbar-none">
+              {followedVenues.map(v => (
+                <Link key={v.id} href={`/venues/${v.id}`}>
+                  <div className="group shrink-0 w-[200px] cursor-pointer">
+                    <VenueImage src={v.imageUrl} name={v.name} seed={v.id} aspect="aspect-[4/3]" rounded="rounded-2xl" />
+                    <div className="mt-2">
+                      <p className="font-semibold text-sm text-ink truncate">{v.name}</p>
+                      {v.neighborhood && (
+                        <p className="text-xs text-ink-muted flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-3 h-3" /> {v.neighborhood}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Upcoming events */}
         {upcoming.length > 0 && (

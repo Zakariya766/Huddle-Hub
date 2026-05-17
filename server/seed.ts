@@ -450,6 +450,15 @@ async function applyAdditiveMigrations() {
   await db.execute(sql`ALTER TABLE events ADD COLUMN IF NOT EXISTS host_user_id VARCHAR`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_business BOOLEAN DEFAULT FALSE`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS business_venue_id VARCHAR`);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS venue_follows (
+      id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+      venue_id VARCHAR NOT NULL,
+      user_id VARCHAR NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS venue_follows_user_venue_idx ON venue_follows (user_id, venue_id)`);
 }
 
 // Push event cover images into already-seeded rows. Idempotent.

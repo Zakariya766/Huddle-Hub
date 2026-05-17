@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { MapPin, Star, ShieldCheck, Calendar, Ticket, Users, MessageCircle, ArrowLeft, CheckCircle } from "lucide-react";
+import { MapPin, Star, ShieldCheck, Calendar, Ticket, Users, MessageCircle, ArrowLeft, CheckCircle, Heart } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,11 +46,27 @@ export default function VenueProfilePage() {
   const { data: rooms } = useQuery<CommunityRoom[]>({
     queryKey: ["/api/community/rooms"],
   });
+  const { data: followStatus } = useQuery<{ following: boolean; followers: number }>({
+    queryKey: [`/api/venues/${params.id}/follow-status`],
+  });
 
   const venueEvents = events?.filter(e => e.venueId === params.id && new Date(e.date) > new Date())
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) || [];
   const activeOffers = offers?.filter(o => o.isActive) || [];
   const venueRoom = rooms?.find(r => r.venueId === params.id);
+
+  const handleFollow = async () => {
+    if (!user) { toast({ title: "Sign in to follow", variant: "destructive" }); return; }
+    try {
+      const res = await apiRequest("POST", `/api/venues/${params.id}/follow`);
+      const data = await res.json();
+      queryClient.invalidateQueries({ queryKey: [`/api/venues/${params.id}/follow-status`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/followed-venues"] });
+      toast({ title: data.following ? "Following" : "Unfollowed" });
+    } catch {
+      toast({ title: "Action failed", variant: "destructive" });
+    }
+  };
 
   const handleCheckin = async () => {
     if (!user) { toast({ title: "Sign in to check in", variant: "destructive" }); return; }
@@ -163,6 +179,17 @@ export default function VenueProfilePage() {
 
         {/* Action Buttons */}
         <div className="flex gap-2">
+          <Button
+            onClick={handleFollow}
+            variant={followStatus?.following ? "default" : "outline"}
+            className="flex-1 rounded-full text-sm h-10"
+          >
+            <Heart className={`w-4 h-4 mr-1.5 ${followStatus?.following ? "fill-current" : ""}`} />
+            {followStatus?.following ? "Following" : "Follow"}
+            {followStatus && followStatus.followers > 0 && (
+              <span className="ml-1.5 text-xs opacity-70">· {followStatus.followers}</span>
+            )}
+          </Button>
           <Button onClick={handleCheckin} variant="outline" className="flex-1 rounded-full text-sm h-10">
             <CheckCircle className="w-4 h-4 mr-1.5" /> Check In
           </Button>

@@ -268,6 +268,25 @@ export async function registerRoutes(
     res.json(checkin);
   });
 
+  app.post("/api/venues/:id/follow", requireAuth, async (req, res) => {
+    const following = await storage.followVenue(p(req.params.id), req.session.userId!);
+    res.json({ following });
+  });
+
+  app.get("/api/venues/:id/follow-status", async (req, res) => {
+    const venueId = p(req.params.id);
+    const followers = await storage.getVenueFollowerCount(venueId);
+    const following = req.session.userId
+      ? await storage.isFollowingVenue(venueId, req.session.userId)
+      : false;
+    res.json({ following, followers });
+  });
+
+  app.get("/api/me/followed-venues", requireAuth, async (req, res) => {
+    const list = await storage.getFollowedVenues(req.session.userId!);
+    res.json(list);
+  });
+
   // ─── Events ────────────────────────────────────────────────────
   app.get("/api/events", async (req, res) => {
     const filters = {
